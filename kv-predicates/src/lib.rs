@@ -4,10 +4,6 @@ pub trait KVPredicates {
         T: AsRef<str>;
 }
 
-pub trait KVPredicatesSimple {
-    fn test() -> String;
-}
-
 #[cfg(test)]
 mod tests {
     use crate::KVPredicates;
