@@ -1,12 +1,12 @@
 #[cfg(test)]
 #[macro_use]
-extern crate kv_predicates_derive;
+extern crate yummy_metadata_derive;
 
 #[cfg(test)]
 mod tests {
-    use kv_predicates::KVPredicates;
+    use yummy_metadata::YummyMetadata;
 
-    #[derive(Default, Debug, KVPredicates)]
+    #[derive(Default, Debug, YummyMetadata)]
     struct PredicateTester {
         one: String,
         two: String,
@@ -24,7 +24,7 @@ mod tests {
 
         let remaining_data: Vec<(String, String)> = test_data
             .into_iter()
-            .filter_map(|v| tester.filter_map_predicate(v))
+            .filter_map(|v| tester.eat_yummy_metadata(v))
             .collect();
 
         assert_eq!(tester.one, "1".to_string());

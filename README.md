@@ -1,13 +1,13 @@
-KV Predicates
-=============
+Yummy Metadata
+==============
 
 ToDo:
 -----
 
-- [ ] Rename, this isn't producing a predicate which is a function that returns a bool.
 - [ ] Check types
 - [ ] Use attributes instead of getting all fields
 - [ ] Recurse over objects that also implement the trait
+- [ ] Open source and release
 
 What problem are we trying to solve?
 ------------------------------------
@@ -28,7 +28,7 @@ struct Location {
 }
 
 impl Location {
-    fn eat_yummy_data(&mut self, (key, value): (String, String)) -> Option<(String, String)> {
+    fn eat_yummy_metadata(&mut self, (key, value): (String, String)) -> Option<(String, String)> {
         match key.as_ref() {
             "location_lat" => self.lat = value,
             "location_lng" => self.lng = value,
@@ -42,25 +42,25 @@ impl Location {
 Used like this:
 
 ```rust
-let meta = vec![
+let metadata = vec![
     ("location_lat".to_string(), "51.5074".to_string())
     ("location_lng".to_string(), "0.1278".to_string())
     ("author".to_string(), "danielmason".to_string())
 ];
 
 let location = Location::default();
-let left_overs = meta.into_iter().filter_map(|data| location.eat_yummy_data(data));
+let left_overs = metadata.into_iter().filter_map(|data| location.eat_yummy_metadata(data));
 ```
 
 However, we don't want to have to implement the same function over and over. Instead we can use the custom derive
-`KVPredicates`.
+`YummyMetadata`.
 
 ```rust
-#[derive(KVPredicates)]
+#[derive(YummyMetadata)]
 struct Location {
-    #[key_name(location_lat)]
+    #[meta_key(location_lat)]
     lat: String,
-    #[key_name(location_lng)]
+    #[meta_key(location_lng)]
     lng: String,
 }
 ```

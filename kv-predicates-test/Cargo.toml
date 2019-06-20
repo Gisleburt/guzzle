@@ -1,9 +1,0 @@
-[package]
-name = "kv-predicates-test"
-version = "0.1.0"
-authors = ["Daniel Mason <daniel.mason@apolitical.co>"]
-edition = "2018"
-
-[dependencies]
-kv-predicates = { path = "../kv-predicates" }
-kv-predicates-derive = { path = "../kv-predicates-derive" }
