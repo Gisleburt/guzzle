@@ -14,6 +14,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        assert_eq!(Test::test(), "Hello, Macro! My name is Test");
+        assert_eq!(Test::test(), "This is a Test, it contains one two");
     }
 }
