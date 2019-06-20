@@ -1,5 +1,7 @@
 pub trait KVPredicates {
-    fn filter_map_predicate(&mut self, current: (String, String)) -> Option<(String, String)>;
+    fn filter_map_predicate<T>(&mut self, current: (T, String)) -> Option<(T, String)>
+    where
+        T: AsRef<str>;
 }
 
 #[cfg(test)]
@@ -13,10 +15,10 @@ mod tests {
     }
 
     impl KVPredicates for PredicateTester {
-        fn filter_map_predicate(
-            &mut self,
-            (key, value): (String, String),
-        ) -> Option<(String, String)> {
+        fn filter_map_predicate<T>(&mut self, (key, value): (T, String)) -> Option<(T, String)>
+        where
+            T: AsRef<str>,
+        {
             match key.as_ref() {
                 "one" => self.one = value,
                 "two" => self.two = value,
@@ -27,7 +29,7 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn filter_map_predicate_with_vec_string_string() {
         let test_data = vec![
             ("one".to_string(), "1".to_string()),
             ("two".to_string(), "2".to_string()),
@@ -48,6 +50,31 @@ mod tests {
         assert_eq!(
             remaining_data.into_iter().next(),
             Some(("three".to_string(), "3".to_string()))
+        );
+    }
+
+    #[test]
+    fn filter_map_predicate_with_vec_str_string() {
+        let test_data = vec![
+            ("one", "1".to_string()),
+            ("two", "2".to_string()),
+            ("three", "3".to_string()),
+        ];
+
+        let mut tester = PredicateTester::default();
+
+        let remaining_data: Vec<(&str, String)> = test_data
+            .into_iter()
+            .filter_map(|v| tester.filter_map_predicate(v))
+            .collect();
+
+        assert_eq!(tester.one, "1".to_string());
+        assert_eq!(tester.two, "2".to_string());
+
+        assert_eq!(remaining_data.len(), 1);
+        assert_eq!(
+            remaining_data.into_iter().next(),
+            Some(("three", "3".to_string()))
         );
     }
 }
