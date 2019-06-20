@@ -2,6 +2,7 @@
 
 members = [
     "kv-predicates",
-    "kv-predicates-derive"
+    "kv-predicates-derive",
+    "kv-predicates-test"
 ]
 
