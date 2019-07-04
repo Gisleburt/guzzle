@@ -32,7 +32,42 @@
 //!     Some(("some-other-key", "some-other-key".to_string()))
 //! );
 //! ```
+//! However, the names of your keys may not match your struct names. To map those values, use the
+//! yummy attribute macro:
+//! ```
+//! use yummy_metadata::YummyMetadata;
 //!
+//! #[derive(Default, Debug, YummyMetadata)]
+//! struct Location {
+//!     #[yummy(longitude)]
+//!     lng: String,
+//!     #[yummy(latitude)]
+//!     lat: String,
+//! }
+//!
+//! let test_data = vec![
+//!     ("longitude", "51.5074° N".to_string()),
+//!     ("latitude", "0.1278° W".to_string()),
+//!     ("some-other-key", "some-other-key".to_string()),
+//! ];
+//!
+//! let mut location = Location::default();
+//!
+//! let remaining_data: Vec<(&str, String)> = test_data
+//!     .into_iter()
+//!     .filter_map(|v| location.eat_yummy_metadata(v))
+//!     .collect();
+//!
+//! assert_eq!(location.lng, "51.5074° N".to_string());
+//! assert_eq!(location.lat, "0.1278° W".to_string());
+//!
+//! assert_eq!(remaining_data.len(), 1);
+//! assert_eq!(
+//!     remaining_data.into_iter().next(),
+//!     Some(("some-other-key", "some-other-key".to_string()))
+//! );
+//! ```
+
 pub use yummy_metadata_derive::*;
 
 pub trait YummyMetadata {

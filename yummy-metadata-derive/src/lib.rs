@@ -5,7 +5,7 @@ use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, Type};
 
-#[proc_macro_derive(YummyMetadata)]
+#[proc_macro_derive(YummyMetadata, attributes(yummy))]
 pub fn yummy_metadata_macro_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
