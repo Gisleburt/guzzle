@@ -4,7 +4,7 @@
 //! ```
 //! use yummy_metadata::YummyMetadata;
 //!
-//! #[derive(Default, Debug, YummyMetadata)]
+//! #[derive(Default, YummyMetadata)]
 //! struct Location {
 //!     lng: String,
 //!     lat: String,
@@ -37,7 +37,7 @@
 //! ```
 //! use yummy_metadata::YummyMetadata;
 //!
-//! #[derive(Default, Debug, YummyMetadata)]
+//! #[derive(Default, YummyMetadata)]
 //! struct Location {
 //!     #[yummy(longitude)]
 //!     lng: String,
