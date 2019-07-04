@@ -32,7 +32,7 @@ fn impl_yummy_metadata(ast: &syn::DeriveInput) -> TokenStream {
                 .unzip();
             let (keys, idents): (Vec<String>, Vec<&Ident>) =
                 idents.into_iter().map(|i| (format!("{}", i), i)).unzip();
-            println!("{:?}", keys);
+
             let name = &ast.ident;
             let gen = quote! {
                 impl YummyMetadata for #name {

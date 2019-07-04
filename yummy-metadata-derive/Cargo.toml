@@ -10,4 +10,3 @@ proc-macro = true
 [dependencies]
 syn = "0.15.36"
 quote = "0.6.12"
-yummy-metadata = { path = "../yummy-metadata" }
