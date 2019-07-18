@@ -26,11 +26,7 @@
 //! assert_eq!(location.lng, "51.5074° N".to_string());
 //! assert_eq!(location.lat, "0.1278° W".to_string());
 //!
-//! assert_eq!(remaining_data.len(), 1);
-//! assert_eq!(
-//!     remaining_data.into_iter().next(),
-//!     Some(("some-other-key", "some-other-key".to_string()))
-//! );
+//! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
 //! However, the names of your keys may not match your struct names. To map those values, use the
 //! yummy attribute macro:
@@ -61,11 +57,7 @@
 //! assert_eq!(location.lng, "51.5074° N".to_string());
 //! assert_eq!(location.lat, "0.1278° W".to_string());
 //!
-//! assert_eq!(remaining_data.len(), 1);
-//! assert_eq!(
-//!     remaining_data.into_iter().next(),
-//!     Some(("some-other-key", "some-other-key".to_string()))
-//! );
+//! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
 
 pub use yummy_metadata_derive::*;
