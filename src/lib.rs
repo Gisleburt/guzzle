@@ -35,15 +35,15 @@
 //!
 //! #[derive(Default, YummyMetadata)]
 //! struct Location {
-//!     #[yummy(longitude)]
+//!     #[yummy(longitude, lng)]
 //!     lng: String,
-//!     #[yummy(latitude)]
+//!     #[yummy(latitude, lat)]
 //!     lat: String,
 //! }
 //!
 //! let test_data = vec![
 //!     ("longitude", "51.5074° N".to_string()),
-//!     ("latitude", "0.1278° W".to_string()),
+//!     ("lat", "0.1278° W".to_string()),
 //!     ("some-other-key", "some-other-key".to_string()),
 //! ];
 //!
