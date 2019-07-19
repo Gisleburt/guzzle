@@ -35,9 +35,9 @@
 //!
 //! #[derive(Default, YummyMetadata)]
 //! struct Location {
-//!     #[yummy(longitude, lng)]
+//!     #[yummy("longitude", "lng")]
 //!     lng: String,
-//!     #[yummy(latitude, lat)]
+//!     #[yummy("latitude", "lat")]
 //!     lat: String,
 //! }
 //!

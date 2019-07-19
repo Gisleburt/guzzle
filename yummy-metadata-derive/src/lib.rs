@@ -4,8 +4,8 @@ use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr,
-    Meta, MetaList, NestedMeta,
+    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, Lit,
+    LitStr, Meta, MetaList, NestedMeta,
 };
 
 struct YummyAttribute<'a> {
@@ -66,12 +66,9 @@ fn get_yummy_meta(attrs: &[Attribute]) -> Vec<MetaList> {
 
 fn names_from_meta(meta: &[MetaList]) -> Vec<LitStr> {
     meta.iter().fold(Vec::new(), |mut acc, l| {
-        l.nested.iter().for_each(|n| {
-            if let NestedMeta::Meta(m) = n {
-                if let Meta::Word(i) = m {
-                    acc.push(ident_to_str(i));
-                }
-            }
+        l.nested.iter().for_each(|n| match n {
+            NestedMeta::Literal(Lit::Str(x)) => acc.push(x.to_owned()),
+            _ => panic!("Expected a string literal"),
         });
         acc
     })
