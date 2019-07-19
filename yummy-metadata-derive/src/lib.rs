@@ -4,17 +4,17 @@ use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, Meta,
-    MetaList, NestedMeta,
+    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr,
+    Meta, MetaList, NestedMeta,
 };
 
 struct YummyAttribute<'a> {
     field: &'a Ident,
-    keys: Vec<String>,
+    keys: Vec<LitStr>,
 }
 
 impl<'a> YummyAttribute<'a> {
-    fn get_arm_parts(&self) -> Vec<(&Ident, &String)> {
+    fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr)> {
         self.keys
             .iter()
             .map(|matcher| (self.field, matcher))
@@ -50,6 +50,10 @@ fn impl_yummy_metadata(ast: &DeriveInput) -> TokenStream {
     }
 }
 
+fn ident_to_str(ident: &Ident) -> LitStr {
+    LitStr::new(ident.to_string().as_ref(), ident.span())
+}
+
 fn get_yummy_meta(attrs: &[Attribute]) -> Vec<MetaList> {
     attrs
         .iter()
@@ -60,12 +64,12 @@ fn get_yummy_meta(attrs: &[Attribute]) -> Vec<MetaList> {
         .collect()
 }
 
-fn names_from_meta(meta: &[MetaList]) -> Vec<String> {
+fn names_from_meta(meta: &[MetaList]) -> Vec<LitStr> {
     meta.iter().fold(Vec::new(), |mut acc, l| {
         l.nested.iter().for_each(|n| {
             if let NestedMeta::Meta(m) = n {
-                if let Meta::Word(w) = m {
-                    acc.push(w.to_string());
+                if let Meta::Word(i) = m {
+                    acc.push(ident_to_str(i));
                 }
             }
         });
@@ -73,10 +77,10 @@ fn names_from_meta(meta: &[MetaList]) -> Vec<String> {
     })
 }
 
-fn get_key_and_field<'a, 'b>(ident: &'a Ident, meta: &'b [MetaList]) -> (Vec<String>, &'a Ident) {
+fn get_key_and_field<'a, 'b>(ident: &'a Ident, meta: &'b [MetaList]) -> (Vec<LitStr>, &'a Ident) {
     let mut name = names_from_meta(meta);
     if name.is_empty() {
-        name.push(ident.to_string())
+        name.push(ident_to_str(ident))
     }
     (name, ident)
 }
