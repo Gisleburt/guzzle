@@ -5,28 +5,28 @@ use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
     parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, Meta,
-    NestedMeta,
+    MetaList, NestedMeta,
 };
 
 struct YummyAttribute<'a> {
-    key: &'a Ident,
-    matchers: Vec<String>,
+    field: &'a Ident,
+    keys: Vec<String>,
 }
 
 impl<'a> YummyAttribute<'a> {
     fn get_arm_parts(&self) -> Vec<(&Ident, &String)> {
-        self.matchers
+        self.keys
             .iter()
-            .map(|matcher| (self.key, matcher))
+            .map(|matcher| (self.field, matcher))
             .collect()
     }
 }
 
 impl<'a> From<&'a Field> for YummyAttribute<'a> {
     fn from(field: &'a Field) -> Self {
-        let (matchers, key) =
-            get_key_and_field(field.ident.as_ref().unwrap(), field.attrs.as_ref());
-        YummyAttribute { key, matchers }
+        let meta = get_yummy_meta(field.attrs.as_ref());
+        let (keys, field) = get_key_and_field(field.ident.as_ref().unwrap(), &meta);
+        YummyAttribute { field, keys }
     }
 }
 
@@ -50,30 +50,31 @@ fn impl_yummy_metadata(ast: &DeriveInput) -> TokenStream {
     }
 }
 
-fn names_from_attrs(attrs: &[Attribute]) -> Vec<String> {
-    // 1. Get the first result
-    // 2. Fail if another result is found.
-
+fn get_yummy_meta(attrs: &[Attribute]) -> Vec<MetaList> {
     attrs
         .iter()
         .map(|attr| (attr.parse_meta(), attr))
         .filter_map(|(r, a)| r.ok().map(|m| (m, a)))
         .filter(|(m, a)| m.name() == Ident::new("yummy", a.span()))
         .filter_map(|(m, _a)| if let Meta::List(l) = m { Some(l) } else { None })
-        .fold(Vec::new(), |mut acc, l| {
-            l.nested.iter().for_each(|n| {
-                if let NestedMeta::Meta(m) = n {
-                    if let Meta::Word(w) = m {
-                        acc.push(w.to_string());
-                    }
-                }
-            });
-            acc
-        })
+        .collect()
 }
 
-fn get_key_and_field<'a, 'b>(ident: &'a Ident, attrs: &'b [Attribute]) -> (Vec<String>, &'a Ident) {
-    let mut name = names_from_attrs(attrs);
+fn names_from_meta(meta: &[MetaList]) -> Vec<String> {
+    meta.iter().fold(Vec::new(), |mut acc, l| {
+        l.nested.iter().for_each(|n| {
+            if let NestedMeta::Meta(m) = n {
+                if let Meta::Word(w) = m {
+                    acc.push(w.to_string());
+                }
+            }
+        });
+        acc
+    })
+}
+
+fn get_key_and_field<'a, 'b>(ident: &'a Ident, meta: &'b [MetaList]) -> (Vec<String>, &'a Ident) {
+    let mut name = names_from_meta(meta);
     if name.is_empty() {
         name.push(ident.to_string())
     }
