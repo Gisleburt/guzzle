@@ -1,10 +1,10 @@
-//! This crate defines YummyMetadata and its custom derive.
+//! This crate defines Guzzle and its custom derive.
 //!
 //! Example:
 //! ```
-//! use yummy_metadata::YummyMetadata;
+//! use guzzle::Guzzle;
 //!
-//! #[derive(Default, YummyMetadata)]
+//! #[derive(Default, Guzzle)]
 //! struct Location {
 //!     lng: String,
 //!     lat: String,
@@ -20,7 +20,7 @@
 //!
 //! let remaining_data: Vec<(&str, String)> = test_data
 //!     .into_iter()
-//!     .filter_map(|v| location.eat_yummy_metadata(v))
+//!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
 //!
 //! assert_eq!(location.lng, "51.5074° N".to_string());
@@ -29,15 +29,15 @@
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
 //! However, the names of your keys may not match your struct names. To map those values, use the
-//! yummy attribute macro:
+//! guzzle attribute macro:
 //! ```
-//! use yummy_metadata::YummyMetadata;
+//! use guzzle::Guzzle;
 //!
-//! #[derive(Default, YummyMetadata)]
+//! #[derive(Default, Guzzle)]
 //! struct Location {
-//!     #[yummy("longitude", "lng")]
+//!     #[guzzle("longitude", "lng")]
 //!     lng: String,
-//!     #[yummy("latitude", "lat")]
+//!     #[guzzle("latitude", "lat")]
 //!     lat: String,
 //! }
 //!
@@ -51,7 +51,7 @@
 //!
 //! let remaining_data: Vec<(&str, String)> = test_data
 //!     .into_iter()
-//!     .filter_map(|v| location.eat_yummy_metadata(v))
+//!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
 //!
 //! assert_eq!(location.lng, "51.5074° N".to_string());
@@ -60,18 +60,18 @@
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
 
-pub use yummy_metadata_derive::*;
+pub use guzzle_derive::*;
 
-pub trait YummyMetadata {
-    fn eat_yummy_metadata<T>(&mut self, current: (T, String)) -> Option<(T, String)>
+pub trait Guzzle {
+    fn guzzle<T>(&mut self, current: (T, String)) -> Option<(T, String)>
     where
         T: AsRef<str>;
 }
 
 #[cfg(test)]
 mod tests {
-    mod yummy_meta_data_trait {
-        use crate::YummyMetadata;
+    mod guzzle_trait {
+        use crate::Guzzle;
 
         #[derive(Default)]
         struct Tester {
@@ -79,8 +79,8 @@ mod tests {
             pub two: String,
         }
 
-        impl YummyMetadata for Tester {
-            fn eat_yummy_metadata<T>(&mut self, (key, value): (T, String)) -> Option<(T, String)>
+        impl Guzzle for Tester {
+            fn guzzle<T>(&mut self, (key, value): (T, String)) -> Option<(T, String)>
             where
                 T: AsRef<str>,
             {
@@ -94,7 +94,7 @@ mod tests {
         }
 
         #[test]
-        fn eat_yummy_metadata_with_vec_string_string() {
+        fn guzzle_with_vec_string_string() {
             let test_data = vec![
                 ("one".to_string(), "1".to_string()),
                 ("two".to_string(), "2".to_string()),
@@ -105,7 +105,7 @@ mod tests {
 
             let remaining_data: Vec<(String, String)> = test_data
                 .into_iter()
-                .filter_map(|v| tester.eat_yummy_metadata(v))
+                .filter_map(|v| tester.guzzle(v))
                 .collect();
 
             assert_eq!(tester.one, "1".to_string());
@@ -119,7 +119,7 @@ mod tests {
         }
 
         #[test]
-        fn eat_yummy_metadata_with_vec_str_string() {
+        fn guzzle_with_vec_str_string() {
             let test_data = vec![
                 ("one", "1".to_string()),
                 ("two", "2".to_string()),
@@ -130,7 +130,7 @@ mod tests {
 
             let remaining_data: Vec<(&str, String)> = test_data
                 .into_iter()
-                .filter_map(|v| tester.eat_yummy_metadata(v))
+                .filter_map(|v| tester.guzzle(v))
                 .collect();
 
             assert_eq!(tester.one, "1".to_string());
@@ -144,7 +144,7 @@ mod tests {
         }
 
         #[test]
-        fn eat_yummy_metadata_with_hash_str_string() {
+        fn guzzle_with_hash_str_string() {
             use std::collections::HashMap;
 
             let test_data: HashMap<String, String> = vec![
@@ -159,7 +159,7 @@ mod tests {
 
             let remaining_data: Vec<(String, String)> = test_data
                 .into_iter()
-                .filter_map(|v| tester.eat_yummy_metadata(v))
+                .filter_map(|v| tester.guzzle(v))
                 .collect();
 
             assert_eq!(tester.one, "1".to_string());
