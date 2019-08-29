@@ -4,6 +4,15 @@ version = "0.1.0"
 authors = ["Daniel Mason <daniel@danielmason.com>"]
 edition = "2018"
 license = "mit"
+description = "A derivable trait for consuming key value pairs into structs"
+readme = "README.md"
+categories = ["data-structures"]
+keywords = ["key", "pair", "key pair", "wordpress"]
+repository = "https://github.com/apolitical/guzzle"
 
 [dependencies]
-guzzle-derive = { path = "./guzzle-derive" }
+guzzle-derive = { path = "./guzzle-derive", version = "0.1.0" }
+
+[badges]
+gitlab = { repository = "git@gitlab.com:apolitical/learning-day-projects/guzzle.git" }
+maintenance = { status = "experimental" }
