@@ -1,1 +1,3 @@
 /target
+/guzzle-derive/target
+/guzzle-derive/Cargo.lock

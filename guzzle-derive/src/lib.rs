@@ -1,5 +1,7 @@
 extern crate proc_macro;
 
+mod attr;
+
 use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn::{
