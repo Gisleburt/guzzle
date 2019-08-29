@@ -1,11 +1,11 @@
-Yummy Metadata
-==============
+Guzzle
+======
 
 ToDo:
 -----
 
 - [ ] Check types
-- [ ] Use attributes instead of getting all fields
+- [x] Use attributes instead of getting all fields
 - [ ] Recurse over objects that also implement the trait
 - [ ] Open source and release
 
@@ -28,7 +28,7 @@ struct Location {
 }
 
 impl Location {
-    fn eat_yummy_metadata(&mut self, (key, value): (String, String)) -> Option<(String, String)> {
+    fn guzzle(&mut self, (key, value): (String, String)) -> Option<(String, String)> {
         match key.as_ref() {
             "location_lat" => self.lat = value,
             "location_lng" => self.lng = value,
@@ -43,24 +43,40 @@ Used like this:
 
 ```rust
 let metadata = vec![
-    ("location_lat".to_string(), "51.5074".to_string())
-    ("location_lng".to_string(), "0.1278".to_string())
+    ("location_lat".to_string(), "51.5074° N".to_string())
+    ("location_lng".to_string(), "0.1278° W".to_string())
     ("author".to_string(), "danielmason".to_string())
 ];
 
 let location = Location::default();
-let left_overs = metadata.into_iter().filter_map(|data| location.eat_yummy_metadata(data));
+let left_overs = metadata.into_iter().filter_map(|data| location.guzzle(data));
 ```
 
 However, we don't want to have to implement the same function over and over. Instead we can use the custom derive
-`YummyMetadata`.
+`Guzzle`.
 
 ```rust
-#[derive(YummyMetadata)]
+#[derive(Guzzle)]
 struct Location {
-    #[meta_key(location_lat)]
+    #[guzzle(keys = ["location_lat"])]
     lat: String,
-    #[meta_key(location_lng)]
+    #[guzzle(keys = ["location_lng"])]
     lng: String,
 }
+
+let metadata = vec![
+    ("location_lat".to_string(), "51.5074° N".to_string())
+    ("location_lng".to_string(), "0.1278° W".to_string())
+    ("some-other-key".to_string(), "some-other-key".to_string())
+];
+
+let remaining_data: Vec<(&str, String)> = test_data
+    .into_iter()
+    .filter_map(|v| location.guzzle(v))
+    .collect();
+
+assert_eq!(location.lng, "51.5074° N".to_string());
+assert_eq!(location.lat, "0.1278° W".to_string());
+
+assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 ```

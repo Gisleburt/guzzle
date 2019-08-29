@@ -1,15 +1,22 @@
 use std::default::Default;
+use std::fmt::{Debug, Error as FormatError, Formatter};
 use std::ops::Deref;
 use syn::{
     bracketed, parenthesized,
-    parse::{Parse, ParseBuffer, Parser},
+    parse::{Parse, ParseBuffer},
     punctuated::Punctuated,
     Ident, LitStr, Token,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct GuzzleAttributes {
     pub keys: Keys,
+}
+
+impl GuzzleAttributes {
+    pub fn new() -> GuzzleAttributes {
+        GuzzleAttributes::default()
+    }
 }
 
 impl Parse for GuzzleAttributes {
@@ -18,6 +25,7 @@ impl Parse for GuzzleAttributes {
         parenthesized!(content in input);
         let punctuated_attrs: Punctuated<GuzzleAttribute, Token![,]> =
             content.parse_terminated(GuzzleAttribute::parse)?;
+
         let mut guzzle_attributes = GuzzleAttributes::default();
         punctuated_attrs.into_iter().for_each(|attr| match attr {
             GuzzleAttribute::Keys(keys) => guzzle_attributes.keys = keys,
@@ -27,6 +35,7 @@ impl Parse for GuzzleAttributes {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum GuzzleAttribute {
     Keys(Keys),
     None,
@@ -85,6 +94,29 @@ impl Parse for Keys {
     }
 }
 
+impl Debug for Keys {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+        // We can infer the span type.
+        let strings: Vec<(String, _)> = self.iter().map(|s| (s.value(), s.span())).collect();
+        for (string, span) in strings {
+            writeln!(f, "{} - {:?}", string, span)?;
+        }
+        Ok(())
+    }
+}
+
+impl PartialEq for Keys {
+    fn eq(&self, other: &Self) -> bool {
+        let zipped: Vec<(_, _)> = self.iter().zip(other.iter()).collect();
+        for (left, right) in zipped {
+            if left.value() != right.value() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 impl Deref for Keys {
     type Target = Vec<LitStr>;
 
@@ -95,7 +127,7 @@ impl Deref for Keys {
 
 #[cfg(test)]
 mod tests {
-    use super::Keys;
+    use super::*;
     use crate::attr::{GuzzleAttribute, GuzzleAttributes};
     use quote::quote;
     use syn::{parse::Parser, parse2, punctuated::Punctuated, LitStr, Token};

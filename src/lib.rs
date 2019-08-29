@@ -6,7 +6,9 @@
 //!
 //! #[derive(Default, Guzzle)]
 //! struct Location {
+//!     #[guzzle(keys = ["lng"])]
 //!     lng: String,
+//!     #[guzzle(keys = ["lat"])]
 //!     lat: String,
 //! }
 //!
@@ -35,9 +37,9 @@
 //!
 //! #[derive(Default, Guzzle)]
 //! struct Location {
-//!     #[guzzle("longitude", "lng")]
+//!     #[guzzle(keys = ["longitude", "lng"])]
 //!     lng: String,
-//!     #[guzzle("latitude", "lat")]
+//!     #[guzzle(keys = ["latitude", "lat"])]
 //!     lat: String,
 //! }
 //!
@@ -172,5 +174,58 @@ mod tests {
             );
         }
     }
+
+    //mod guzzle_meta_data_derive {
+    //    use crate::Guzzle;
+    //
+    //    #[derive(Default, Guzzle)]
+    //    struct AttributeDemo {
+    //        /// This field is not annotated, therefore its field is `basic` and its keys contain
+    //        /// one string which is the same as the name `basic`.
+    //        basic: String,
+    //        /// This field may be filled from multiple keys
+    //        #[guzzle(keys = ["one", "two"])]
+    //        listed_keys: String,
+    //        /// This field is not a string, you must provider a parser that will transform it into
+    //        /// the correct type
+    //        #[guzzle(parser = "my_parser")]
+    //        other_types: u64,
+    //        /// This field isn't a string and has multiple keys
+    //        #[guzzle(parser = my_parser, keys = ["three", "four"])]
+    //        other_types_with_listed_keys: u64,
+    //    }
+    //
+    //    #[test]
+    //    fn everything() {
+    //        use std::collections::HashMap;
+    //
+    //        fn my_parser(s: String) -> u64 {
+    //            s.parse().unwrap_or(0)
+    //        }
+    //
+    //        let test_data: HashMap<String, String> = vec![
+    //            ("basic".to_string(), "basic info".to_string()),
+    //            ("one".to_string(), "1".to_string()),
+    //            ("two".to_string(), "2".to_string()),
+    //            ("other_types".to_string(), "20".to_string()),
+    //            ("three".to_string(), "3".to_string()),
+    //            ("four".to_string(), "4".to_string()),
+    //        ]
+    //        .into_iter()
+    //        .collect();
+    //
+    //        let attribute_demo = AttributeDemo::default();
+    //
+    //        let remaining_data: Vec<(String, String)> = attribute_demo
+    //            .into_iter()
+    //            .filter_map(|v| tester.guzzle(v))
+    //            .collect();
+    //
+    //        assert_eq!(attribute_demo.basic, "basic info".to_string());
+    //        assert_eq!(attribute_demo.listed_keys, "2".to_string());
+    //        assert_eq!(attribute_demo.other_types, 20);
+    //        assert_eq!(attribute_demo.other_types_with_listed_keys, 4);
+    //    }
+    //}
 
 }

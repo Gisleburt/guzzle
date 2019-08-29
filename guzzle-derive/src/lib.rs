@@ -3,15 +3,13 @@ extern crate proc_macro;
 mod attr;
 
 use crate::proc_macro::TokenStream;
+use attr::GuzzleAttributes;
 use quote::quote;
-use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr,
-    Meta, MetaNameValue,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr};
 
 /// This structure models the guzzle attribute.
 ///
-/// ```
+/// ```ignore
 /// #[derive(Guzzle)]
 /// struct Guzzle {
 ///     /// This field is not annotated, therefore its field is `basic` and its keys contain
@@ -27,105 +25,77 @@ use syn::{
 ///     /// This field isn't a string and has multiple keys
 ///     #[guzzle(parser = "my_parser", keys = ["three", "four"])]
 ///     other_types_with_listed_keys: u64,
+///     /// This field won't be parsed
+///     #[noguzzle]
+///     not_something_for_guzzle: String,
 /// }
 /// ```
-struct GuzzleAttribute<'a> {
+struct FieldAttribute<'a> {
     field: &'a Ident,
-    keys: Vec<LitStr>,
+    attributes: GuzzleAttributes,
 }
 
-impl<'a> GuzzleAttribute<'a> {
+impl<'a> FieldAttribute<'a> {
     fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr)> {
-        self.keys
+        self.attributes
+            .keys
             .iter()
             .map(|matcher| (self.field, matcher))
             .collect()
     }
 }
 
-impl<'a> From<&'a Field> for GuzzleAttribute<'a> {
+impl<'a> From<&'a Field> for FieldAttribute<'a> {
     fn from(field: &'a Field) -> Self {
-        let meta = get_guzzle_meta(field.attrs.as_ref());
-        let (keys, field) = get_key_and_field(field.ident.as_ref().unwrap(), &meta);
-        GuzzleAttribute { field, keys }
+        let mut attributes = GuzzleAttributes::new();
+        let all_attrs = &field.attrs;
+        for attr in all_attrs {
+            let path = &attr.path;
+            if let "guzzle" = quote!(#path).to_string().as_ref() {
+                let tokens = attr.tts.clone();
+                let is_empty = tokens.is_empty();
+                attributes = syn::parse2(tokens).unwrap_or_else(|err| {
+                    let tokens_str = if is_empty {
+                        String::new()
+                    } else {
+                        format!("problematic tokens: {}", &attr.tts)
+                    };
+                    panic!("{}, {}", err.to_string(), tokens_str)
+                });
+            }
+        }
+        let field = field.ident.as_ref().unwrap();
+        FieldAttribute { field, attributes }
     }
 }
 
-#[proc_macro_derive(Guzzle, attributes(guzzle))]
+#[proc_macro_derive(Guzzle, attributes(guzzle, noguzzle))]
 pub fn guzzle_macro_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
     let ast = parse_macro_input!(input);
 
     // Build the trait implementation
-    impl_guzzle(&ast)
+    impl_guzzle(ast)
 }
 
-fn impl_guzzle(ast: &DeriveInput) -> TokenStream {
+fn impl_guzzle(ast: DeriveInput) -> TokenStream {
     match &ast.data {
         Data::Struct(s) => match &s.fields {
-            Fields::Named(fields) => impl_guzzle_named_fields(ast, fields),
+            Fields::Named(fields) => impl_guzzle_named_fields(&ast, fields),
             _ => unimplemented!(),
         },
         _ => unimplemented!(),
     }
 }
 
-fn ident_to_str(ident: &Ident) -> LitStr {
-    LitStr::new(ident.to_string().as_ref(), ident.span())
-}
-
-fn get_guzzle_meta(attrs: &[Attribute]) -> Vec<MetaNameValue> {
-    attrs
-        .iter()
-        .filter(|attr| attr.path.is_ident("guzzle"))
-        .filter_map(|attr| {
-            attr.parse_meta()
-                .map_err(|e| {
-                    println!("nope");
-                    e
-                })
-                .ok()
-        })
-        .map(|v| {
-            println!("yes");
-            v
-        })
-        .filter_map(|meta| {
-            if let Meta::NameValue(name_value) = meta {
-                println!("hello");
-                Some(name_value)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn names_from_meta(meta: &[MetaNameValue]) -> Vec<LitStr> {
-    meta.iter().fold(Vec::new(), |mut acc, l| {
-        println!("meta - {}", l.ident);
-        acc
-    })
-}
-
-fn get_key_and_field<'a, 'b>(
-    ident: &'a Ident,
-    meta: &'b [MetaNameValue],
-) -> (Vec<LitStr>, &'a Ident) {
-    let mut name = names_from_meta(meta);
-    if name.is_empty() {
-        name.push(ident_to_str(ident))
-    }
-    (name, ident)
-}
-
-fn fields_to_attributes(fields: &FieldsNamed) -> Vec<GuzzleAttribute> {
+fn fields_to_attributes(fields: &FieldsNamed) -> Vec<FieldAttribute> {
     fields.named.iter().map(|field| field.into()).collect()
 }
 
 fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStream {
     let name = &ast.ident;
+    //    &ast.attrs.iter().for_each(|attr| attr.)
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     let attributes = fields_to_attributes(fields);
