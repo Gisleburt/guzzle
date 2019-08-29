@@ -1,0 +1,80 @@
+#########
+# Reuse #
+#########
+variables:
+  RUNNER_IMAGE: registry.gitlab.com/apolitical/tools/rust-builder
+  DOCS_IMAGE: $CI_REGISTRY_IMAGE/docs:$CI_COMMIT_TAG
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+.cache: &cache
+  cache:
+    key: $CI_JOB_NAME
+    paths:
+      - target/ # Build artifacts and intermediaries
+      - .cargo/ # Use this for CARGO_HOME in variables
+
+##########
+# Stages #
+##########
+stages:
+  - Quality       # Run tests, etc
+
+###########
+# Quality #
+###########
+.quality: &quality
+  <<: *cache
+  stage: Quality
+  image:  $RUNNER_IMAGE
+  when: always
+
+Test:Trait:
+  <<: *quality
+  script:
+    - cargo test
+
+Test:Derive:
+  <<: *quality
+  script:
+    - cd guzzle-derive
+    - cargo test
+
+Lint:Trait:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cargo clippy
+
+Lint:Derive:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cd guzzle-derive
+    - cargo clippy
+
+Audit:Trait:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cargo audit
+
+Audit:Derive:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cd guzzle-derive
+    - cargo audit
+
+Dependencies:Trait:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cargo outdated
+
+Dependencies:Derive:
+  <<: *quality
+  allow_failure: true
+  script:
+    - cd guzzle-derive
+    - cargo outdated
+
