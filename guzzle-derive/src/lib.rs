@@ -7,7 +7,8 @@ use attr::GuzzleAttributes;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr};
 
-/// This structure models the guzzle attribute.
+/// This structure models the guzzle attribute. This is a work in progress and not only won't
+/// function as is, but may change dramatically.
 ///
 /// ```ignore
 /// #[derive(Guzzle)]
@@ -95,7 +96,7 @@ fn fields_to_attributes(fields: &FieldsNamed) -> Vec<FieldAttribute> {
 
 fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStream {
     let name = &ast.ident;
-    //    &ast.attrs.iter().for_each(|attr| attr.)
+
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     let attributes = fields_to_attributes(fields);
