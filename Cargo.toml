@@ -3,6 +3,7 @@ name = "guzzle"
 version = "0.1.0"
 authors = ["Daniel Mason <daniel@danielmason.com>"]
 edition = "2018"
+license = "mit"
 
 [dependencies]
 guzzle-derive = { path = "./guzzle-derive" }
