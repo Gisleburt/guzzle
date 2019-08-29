@@ -13,8 +13,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Iden
 /// ```ignore
 /// #[derive(Guzzle)]
 /// struct Guzzle {
-///     /// This field is not annotated, therefore its field is `basic` and its keys contain
-///     /// one string which is the same as the name `basic`.
+///     /// This field is not annotated, therefore it will not be parsed by guzzle
 ///     basic: String,
 ///     /// This field may be filled from multiple keys
 ///     #[guzzle(keys = ["one", "two"])]
@@ -26,9 +25,6 @@ use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Iden
 ///     /// This field isn't a string and has multiple keys
 ///     #[guzzle(parser = "my_parser", keys = ["three", "four"])]
 ///     other_types_with_listed_keys: u64,
-///     /// This field won't be parsed
-///     #[noguzzle]
-///     not_something_for_guzzle: String,
 /// }
 /// ```
 struct FieldAttribute<'a> {
