@@ -1,6 +1,11 @@
 Guzzle
 ======
 
+[![GitHub release](https://img.shields.io/github/release/apolitical/guzzle.svg)](https://github.com/apolitical/guzzle/releases)
+[![GitHub license](https://img.shields.io/github/license/apolitical/guzzle.svg)](https://github.com/apolitical/guzzle/blob/master/LICENSE)
+
+This project is an experimental work in progress and the interface may change.
+
 ToDo:
 -----
 
