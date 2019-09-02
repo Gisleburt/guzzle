@@ -3,11 +3,11 @@ name = "guzzle"
 version = "0.1.0"
 authors = ["Daniel Mason <daniel@danielmason.com>"]
 edition = "2018"
-license = "mit"
+license = "MIT"
 description = "A derivable trait for consuming key value pairs into structs"
 readme = "README.md"
 categories = ["data-structures"]
-keywords = ["key", "pair", "key pair", "wordpress"]
+keywords = ["derive", "key", "pair", "key-pair", "wordpress"]
 repository = "https://github.com/apolitical/guzzle"
 
 [dependencies]

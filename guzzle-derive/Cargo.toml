@@ -3,6 +3,11 @@ name = "guzzle-derive"
 version = "0.1.0"
 authors = ["Daniel Mason <daniel@danielmason.com>"]
 edition = "2018"
+license = "MIT"
+description = "The derive macro for guzzle, please use that crate not this one."
+categories = ["data-structures"]
+keywords = ["derive", "key", "pair", "key-pair", "wordpress"]
+repository = "https://github.com/apolitical/guzzle"
 
 [lib]
 proc-macro = true
