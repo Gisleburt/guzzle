@@ -8,7 +8,7 @@ use syn::{
     Ident, LitStr, Token,
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub struct GuzzleAttributes {
     pub keys: Keys,
 }
@@ -29,35 +29,14 @@ impl Parse for GuzzleAttributes {
         let mut guzzle_attributes = GuzzleAttributes::default();
         punctuated_attrs.into_iter().for_each(|attr| match attr {
             GuzzleAttribute::Keys(keys) => guzzle_attributes.keys = keys,
-            GuzzleAttribute::None => {}
         });
         Ok(guzzle_attributes)
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum GuzzleAttribute {
     Keys(Keys),
-    None,
-}
-
-impl GuzzleAttribute {
-    pub fn new() -> GuzzleAttribute {
-        GuzzleAttribute::default()
-    }
-
-    pub fn keys(&self) -> Option<&Keys> {
-        match self {
-            GuzzleAttribute::Keys(x) => Some(x),
-            _ => None,
-        }
-    }
-}
-
-impl Default for GuzzleAttribute {
-    fn default() -> Self {
-        GuzzleAttribute::None
-    }
 }
 
 impl Parse for GuzzleAttribute {
@@ -102,18 +81,6 @@ impl Debug for Keys {
             writeln!(f, "{} - {:?}", string, span)?;
         }
         Ok(())
-    }
-}
-
-impl PartialEq for Keys {
-    fn eq(&self, other: &Self) -> bool {
-        let zipped: Vec<(_, _)> = self.iter().zip(other.iter()).collect();
-        for (left, right) in zipped {
-            if left.value() != right.value() {
-                return false;
-            }
-        }
-        true
     }
 }
 
@@ -165,7 +132,10 @@ mod tests {
     fn parse_named_slice() -> Result<(), syn::Error> {
         let token_stream = quote! { keys = ["key1", "key2"] };
         let attribute: GuzzleAttribute = parse2(token_stream).unwrap();
-        let mut iter = attribute.keys().unwrap().iter();
+        let mut iter = match &attribute {
+            GuzzleAttribute::Keys(keys) => keys.iter(),
+            _ => panic!("attribute was not 'keys'"),
+        };
         assert_eq!("key1", &iter.next().unwrap().value());
         assert_eq!("key2", &iter.next().unwrap().value());
         assert!(iter.next().is_none());

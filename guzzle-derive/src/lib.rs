@@ -7,13 +7,13 @@ use attr::GuzzleAttributes;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr};
 
-/// This structure models the guzzle attribute.
+/// This structure models the guzzle attribute. This is a work in progress and not only won't
+/// function as is, but may change dramatically.
 ///
 /// ```ignore
 /// #[derive(Guzzle)]
 /// struct Guzzle {
-///     /// This field is not annotated, therefore its field is `basic` and its keys contain
-///     /// one string which is the same as the name `basic`.
+///     /// This field is not annotated, therefore it will not be parsed by guzzle
 ///     basic: String,
 ///     /// This field may be filled from multiple keys
 ///     #[guzzle(keys = ["one", "two"])]
@@ -25,9 +25,6 @@ use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Iden
 ///     /// This field isn't a string and has multiple keys
 ///     #[guzzle(parser = "my_parser", keys = ["three", "four"])]
 ///     other_types_with_listed_keys: u64,
-///     /// This field won't be parsed
-///     #[noguzzle]
-///     not_something_for_guzzle: String,
 /// }
 /// ```
 struct FieldAttribute<'a> {
@@ -95,7 +92,7 @@ fn fields_to_attributes(fields: &FieldsNamed) -> Vec<FieldAttribute> {
 
 fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStream {
     let name = &ast.ident;
-    //    &ast.attrs.iter().for_each(|attr| attr.)
+
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     let attributes = fields_to_attributes(fields);
