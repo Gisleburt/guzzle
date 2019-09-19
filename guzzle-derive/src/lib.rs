@@ -5,7 +5,7 @@ mod attr;
 use crate::proc_macro::TokenStream;
 use attr::GuzzleAttributes;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, FieldsNamed, Ident, LitStr};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, Field, Fields, FieldsNamed, Ident, LitStr};
 
 /// This structure models the guzzle attribute. This is a work in progress and not only won't
 /// function as is, but may change dramatically.
@@ -33,18 +33,21 @@ struct FieldAttribute<'a> {
 }
 
 impl<'a> FieldAttribute<'a> {
-    fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr)> {
+    fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr, &Option<Expr>)> {
         self.attributes
             .keys
             .iter()
-            .map(|matcher| (self.field, matcher))
+            .map(|matcher| (self.field, matcher, &self.attributes.parser))
             .collect()
     }
 }
 
 impl<'a> From<&'a Field> for FieldAttribute<'a> {
     fn from(field: &'a Field) -> Self {
-        let mut attributes = GuzzleAttributes::new();
+        // Default value for keys is just the name of the field
+        let name_ident = field.ident.clone().unwrap();
+
+        let mut attributes = GuzzleAttributes::new(); // Default blank attributes
         let all_attrs = &field.attrs;
         for attr in all_attrs {
             let path = &attr.path;
@@ -61,6 +64,8 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
                 });
             }
         }
+        attributes.set_default_key_if_none(name_ident);
+
         let field = field.ident.as_ref().unwrap();
         FieldAttribute { field, attributes }
     }
@@ -103,7 +108,14 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
         keys_and_matchers.append(&mut attr.get_arm_parts());
     }
 
-    let (keys, matchers): (Vec<_>, Vec<_>) = keys_and_matchers.into_iter().unzip();
+    let mut keys = vec![];
+    let mut matchers = vec![];
+    let mut parsers = vec![];
+    for (key, matcher, parser) in keys_and_matchers {
+        keys.push(key);
+        matchers.push(matcher);
+        parsers.push(parser);
+    }
 
     let gen = quote! {
         impl #impl_generics Guzzle for #name #ty_generics #where_clause {
@@ -111,7 +123,7 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
             where T: AsRef<str>
             {
                 match key.as_ref() {
-                    #( #matchers => self.#keys = value, )*
+                    #( #matchers => self.#keys = #parsers(value), )*
                     _ => return Some((key, value)),
                 };
                 None

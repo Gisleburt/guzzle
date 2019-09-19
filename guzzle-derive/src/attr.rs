@@ -18,6 +18,12 @@ impl GuzzleAttributes {
     pub fn new() -> GuzzleAttributes {
         GuzzleAttributes::default()
     }
+
+    pub fn set_default_key_if_none(&mut self, ident: Ident) {
+        if self.keys.is_empty() {
+            self.keys = Keys(vec![LitStr::new(ident.to_string().as_str(), ident.span())])
+        }
+    }
 }
 
 impl Parse for GuzzleAttributes {
