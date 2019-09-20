@@ -197,6 +197,9 @@ mod tests {
             /// This field isn't a string and has multiple keys
             #[guzzle(parser = u64_parser, keys = ["three", "four"])]
             other_types_with_listed_keys: u64,
+            /// This field will be ignored
+            #[noguzzle]
+            ignored_field: String,
         }
 
         #[test]
@@ -214,6 +217,7 @@ mod tests {
                 ("other_types", "20".to_string()),
                 ("three", "3".to_string()),
                 ("four", "4".to_string()),
+                ("ignored_field", "ignored data".to_string()),
             ];
 
             let mut attribute_demo = AttributeDemo::default();
@@ -227,6 +231,7 @@ mod tests {
             assert_eq!(attribute_demo.listed_keys, "2".to_string());
             assert_eq!(attribute_demo.other_types, 20);
             assert_eq!(attribute_demo.other_types_with_listed_keys, 4);
+            assert!(attribute_demo.ignored_field.is_empty());
         }
     }
 }
