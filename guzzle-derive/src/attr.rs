@@ -5,17 +5,24 @@ use syn::{
     bracketed, parenthesized,
     parse::{Parse, ParseBuffer},
     punctuated::Punctuated,
-    Ident, LitStr, Token,
+    Expr, Ident, LitStr, Token,
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct GuzzleAttributes {
     pub keys: Keys,
+    pub parser: Option<Expr>,
 }
 
 impl GuzzleAttributes {
     pub fn new() -> GuzzleAttributes {
         GuzzleAttributes::default()
+    }
+
+    pub fn set_default_key_if_none(&mut self, ident: Ident) {
+        if self.keys.is_empty() {
+            self.keys = Keys(vec![LitStr::new(ident.to_string().as_str(), ident.span())])
+        }
     }
 }
 
@@ -29,14 +36,15 @@ impl Parse for GuzzleAttributes {
         let mut guzzle_attributes = GuzzleAttributes::default();
         punctuated_attrs.into_iter().for_each(|attr| match attr {
             GuzzleAttribute::Keys(keys) => guzzle_attributes.keys = keys,
+            GuzzleAttribute::Parser(parser) => guzzle_attributes.parser = Some(parser),
         });
         Ok(guzzle_attributes)
     }
 }
 
-#[derive(Debug)]
 pub enum GuzzleAttribute {
     Keys(Keys),
+    Parser(Expr),
 }
 
 impl Parse for GuzzleAttribute {
@@ -50,10 +58,11 @@ impl Parse for GuzzleAttribute {
 
             match name_str.as_ref() {
                 "keys" => Ok(GuzzleAttribute::Keys(input.parse()?)),
+                "parser" => Ok(GuzzleAttribute::Parser(input.parse()?)),
                 _ => Err(input.error(format!("Unknown key: {}", name_str))),
             }
         } else {
-            Err(input.error("Atrributes must be listed as `key = value`"))
+            Err(input.error("Attributes must be listed as `key = value`"))
         }
     }
 }
@@ -150,6 +159,17 @@ mod tests {
         assert_eq!("key3", &iter.next().unwrap().value());
         assert_eq!("key4", &iter.next().unwrap().value());
         assert!(iter.next().is_none());
+        Ok(())
+    }
+
+    fn test_parser(s: String) -> String {
+        s
+    }
+
+    #[test]
+    fn parse_parser() -> Result<(), syn::Error> {
+        let token_stream = quote! { parser = test_parser };
+        let attribute: GuzzleAttribute = parse2(token_stream)?;
         Ok(())
     }
 }
