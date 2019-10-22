@@ -8,8 +8,9 @@ This project is an experimental work in progress and the interface may change.
 ToDo:
 -----
 
-- [ ] Check types
-- [x] Use attributes instead of getting all fields
+- [x] Parse types
+- [x] Use attributes
+- [x] Toggle off per attribute
 - [ ] Recurse over objects that also implement the trait
 - [ ] Open source and release
 
@@ -26,6 +27,7 @@ any other keys for use in different structs.
 A handy way to do this is to turn the meta data into iterator, then use a filter_map. For example:
 
 ```rust
+#[derive(Default)]
 struct Location {
     lat: String,
     lng: String,
@@ -36,23 +38,19 @@ impl Location {
         match key.as_ref() {
             "location_lat" => self.lat = value,
             "location_lng" => self.lng = value,
-            _ => return Some(key, value);
+            _ => return Some((key, value)),
         };
         None
     }
 }
-```
 
-Used like this:
-
-```rust
 let metadata = vec![
-    ("location_lat".to_string(), "51.5074° N".to_string())
-    ("location_lng".to_string(), "0.1278° W".to_string())
-    ("author".to_string(), "danielmason".to_string())
+    ("location_lat".to_string(), "51.5074° N".to_string()),
+    ("location_lng".to_string(), "0.1278° W".to_string()),
+    ("author".to_string(), "danielmason".to_string()),
 ];
 
-let location = Location::default();
+let mut location = Location::default();
 let left_overs = metadata.into_iter().filter_map(|data| location.guzzle(data));
 ```
 
@@ -60,7 +58,9 @@ However, we don't want to have to implement the same function over and over. Ins
 `Guzzle`.
 
 ```rust
-#[derive(Guzzle)]
+use guzzle::Guzzle;
+
+#[derive(Default, Guzzle)]
 struct Location {
     #[guzzle(keys = ["location_lat"])]
     lat: String,
@@ -69,18 +69,119 @@ struct Location {
 }
 
 let metadata = vec![
-    ("location_lat".to_string(), "51.5074° N".to_string())
-    ("location_lng".to_string(), "0.1278° W".to_string())
-    ("some-other-key".to_string(), "some-other-key".to_string())
+    ("location_lat", "51.5074° N".to_string()),
+    ("location_lng", "0.1278° W".to_string()),
+    ("some-other-key", "some-other-key".to_string()),
 ];
 
-let remaining_data: Vec<(&str, String)> = test_data
+let mut location = Location::default();
+
+let remaining_data: Vec<(&str, String)> = metadata
     .into_iter()
     .filter_map(|v| location.guzzle(v))
     .collect();
 
-assert_eq!(location.lng, "51.5074° N".to_string());
-assert_eq!(location.lat, "0.1278° W".to_string());
+assert_eq!(location.lat, "51.5074° N".to_string());
+assert_eq!(location.lng, "0.1278° W".to_string());
+
+assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
+```
+
+If your fields names are the same as your meta data keys, you do not need to specify them.
+
+```rust
+use guzzle::Guzzle;
+
+#[derive(Default, Guzzle)]
+struct Location {
+    lat: String,
+    lng: String,
+}
+
+let metadata = vec![
+    ("lat", "51.5074° N".to_string()),
+    ("lng", "0.1278° W".to_string()),
+    ("some-other-key", "some-other-key".to_string()),
+];
+
+let mut location = Location::default();
+
+let remaining_data: Vec<(&str, String)> = metadata
+    .into_iter()
+    .filter_map(|v| location.guzzle(v))
+    .collect();
+
+assert_eq!(location.lat, "51.5074° N".to_string());
+assert_eq!(location.lng, "0.1278° W".to_string());
+
+assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
+```
+
+If you want to prevent a field from receiving data from guzzle, add `#[noguzzle]`
+
+```rust
+use guzzle::Guzzle;
+
+#[derive(Default, Guzzle)]
+struct Location {
+    lat: String,
+    #[noguzzle]
+    lng: String,
+}
+
+let metadata = vec![
+    ("lat", "51.5074° N".to_string()),
+    ("lng", "0.1278° W".to_string()),
+    ("some-other-key", "some-other-key".to_string()),
+];
+
+let mut location = Location::default();
+
+let remaining_data: Vec<(&str, String)> = metadata
+    .into_iter()
+    .filter_map(|v| location.guzzle(v))
+    .collect();
+
+assert_eq!(location.lat, "51.5074° N".to_string());
+
+assert_eq!(remaining_data, [
+    ("lng", "0.1278° W".to_string()),
+    ("some-other-key", "some-other-key".to_string())
+]);
+```
+
+If your data is not a string, you may provide a parser function
+
+```rust
+use guzzle::Guzzle;
+
+fn string_to_u64(s: String) -> f64 {
+    s.parse().unwrap_or_default()
+}
+
+#[derive(Default, Guzzle)]
+struct Location {
+    #[guzzle(keys = ["location_lat"], parser = string_to_u64)]
+    lat: f64,
+    #[guzzle(keys = ["location_lng"], parser = string_to_u64)]
+    lng: f64,
+}
+
+let metadata = vec![
+    ("location_lat", "51.5074".to_string()),
+    ("location_lng", "0.1278".to_string()),
+    ("some-other-key", "some-other-key".to_string()),
+];
+
+let mut location = Location::default();
+
+let remaining_data: Vec<(&str, String)> = metadata
+    .into_iter()
+    .filter_map(|v| location.guzzle(v))
+    .collect();
+
+assert_eq!(location.lat, 51.5074);
+assert_eq!(location.lng, 0.1278);
 
 assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 ```

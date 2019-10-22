@@ -29,16 +29,20 @@ use syn::{parse_macro_input, Data, DeriveInput, Expr, Field, Fields, FieldsNamed
 /// ```
 struct FieldAttribute<'a> {
     field: &'a Ident,
-    attributes: GuzzleAttributes,
+    attributes: Option<GuzzleAttributes>,
 }
 
 impl<'a> FieldAttribute<'a> {
     fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr, &Option<Expr>)> {
         self.attributes
-            .keys
-            .iter()
-            .map(|matcher| (self.field, matcher, &self.attributes.parser))
-            .collect()
+            .as_ref()
+            .map(|attr| {
+                attr.keys
+                    .iter()
+                    .map(|matcher| (self.field, matcher, &attr.parser))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -47,24 +51,35 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
         // Default value for keys is just the name of the field
         let name_ident = field.ident.clone().unwrap();
 
-        let mut attributes = GuzzleAttributes::new(); // Default blank attributes
+        let mut attributes = Some(GuzzleAttributes::new()); // Default blank attributes
         let all_attrs = &field.attrs;
         for attr in all_attrs {
             let path = &attr.path;
-            if let "guzzle" = quote!(#path).to_string().as_ref() {
-                let tokens = attr.tts.clone();
-                let is_empty = tokens.is_empty();
-                attributes = syn::parse2(tokens).unwrap_or_else(|err| {
-                    let tokens_str = if is_empty {
-                        String::new()
-                    } else {
-                        format!("problematic tokens: {}", &attr.tts)
-                    };
-                    panic!("{}, {}", err.to_string(), tokens_str)
-                });
+            match quote!(#path).to_string().as_ref() {
+                "guzzle" => {
+                    let tokens = attr.tts.clone();
+                    let is_empty = tokens.is_empty();
+                    attributes = Some(syn::parse2(tokens).unwrap_or_else(|err| {
+                        let tokens_str = if is_empty {
+                            String::new()
+                        } else {
+                            format!("problematic tokens: {}", &attr.tts)
+                        };
+                        panic!("{}, {}", err.to_string(), tokens_str)
+                    }));
+                }
+                "noguzzle" => {
+                    attributes = None;
+                    break;
+                }
+                _ => {}
             }
         }
-        attributes.set_default_key_if_none(name_ident);
+        // If attributes are Some, make sure at least one key is available by using the field name
+        attributes = attributes.map(|mut attr| {
+            attr.set_default_key_if_none(name_ident);
+            attr
+        });
 
         let field = field.ident.as_ref().unwrap();
         FieldAttribute { field, attributes }
