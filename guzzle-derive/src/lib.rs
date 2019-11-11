@@ -38,23 +38,23 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
 
     let attributes = fields_to_attributes(fields);
 
-    let mut keys_and_matchers = Vec::new();
-    let mut deep_guzzles = Vec::new();
-
-    for attr in &attributes {
-        keys_and_matchers.append(&mut attr.get_arm_parts());
-        if let Some(expr) = attr.get_recursion() {
-            deep_guzzles.push(expr);
-        }
-    }
-
+    let mut deep_guzzles = vec![];
     let mut keys = vec![];
     let mut matchers = vec![];
     let mut parsers = vec![];
-    for (key, matcher, parser) in keys_and_matchers {
-        keys.push(key);
-        matchers.push(matcher);
-        parsers.push(parser);
+
+    for field_attribute in &attributes {
+        // In the future we might have types of attributes so this might need opening up but it'll
+        // do for now.
+        if let Some(expr) = field_attribute.get_recursion() {
+            deep_guzzles.push(expr);
+        } else {
+            for (key, matcher, parser) in field_attribute.get_arm_parts() {
+                keys.push(key);
+                matchers.push(matcher);
+                parsers.push(parser);
+            }
+        }
     }
 
     let gen = quote! {

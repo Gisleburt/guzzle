@@ -104,19 +104,16 @@ fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> Option<Guzzl
                 panic!("{}, {}", err.to_string(), tokens_str)
             });
 
+            // If we have a keyed attribute with no keys, we will use the ident
             if keyed_attr.keys.is_empty() {
                 keyed_attr.keys = Keys::from_ident(ident);
             }
 
             Some(GuzzleAttribute::KeyedAttribute(keyed_attr))
         }
-        "deep_guzzle" => {
-            Some(GuzzleAttribute::RecurseAttribute(ident.clone()))
-        }
-        "no_guzzle" => {
-            Some(GuzzleAttribute::NoGuzzle)
-        }
-        _ => None
+        "deep_guzzle" => Some(GuzzleAttribute::RecurseAttribute(ident.clone())),
+        "no_guzzle" => Some(GuzzleAttribute::NoGuzzle),
+        _ => None,
     }
 }
 
