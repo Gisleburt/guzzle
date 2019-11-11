@@ -10,7 +10,7 @@ use syn::{
 
 pub enum GuzzleAttribute {
     KeyedAttribute(GuzzleKeyedAttribute),
-    RecurseGuzzle(Expr),
+    RecurseGuzzle(Ident),
 }
 
 impl Default for GuzzleAttribute {

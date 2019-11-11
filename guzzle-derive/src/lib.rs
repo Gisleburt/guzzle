@@ -49,6 +49,19 @@ impl<'a> FieldAttribute<'a> {
             })
             .unwrap_or_default()
     }
+
+    fn get_recursion(&self) -> Option<&Ident> {
+        self.attributes
+            .as_ref()
+            .map(|attr| {
+                if let GuzzleAttribute::RecurseGuzzle(expr) = attr {
+                    Some(expr)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default()
+    }
 }
 
 impl<'a> From<&'a Field> for FieldAttribute<'a> {
@@ -80,7 +93,10 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
                         )
                     );
                 }
-                "deep_guzzle" => {}
+                "deep_guzzle" => {
+                    attributes = Some(GuzzleAttribute::RecurseGuzzle(name_ident.clone()));
+                    break;
+                }
                 "noguzzle" => {
                     attributes = None;
                     break;
@@ -103,7 +119,7 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
     }
 }
 
-#[proc_macro_derive(Guzzle, attributes(guzzle, noguzzle))]
+#[proc_macro_derive(Guzzle, attributes(guzzle, noguzzle, deep_guzzle))]
 pub fn guzzle_macro_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -135,9 +151,13 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
     let attributes = fields_to_attributes(fields);
 
     let mut keys_and_matchers = Vec::new();
+    let mut deep_guzzles = Vec::new();
 
     for attr in &attributes {
         keys_and_matchers.append(&mut attr.get_arm_parts());
+        if let Some(expr) = attr.get_recursion() {
+            deep_guzzles.push(expr);
+        }
     }
 
     let mut keys = vec![];
@@ -154,6 +174,11 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
             fn guzzle<T>(&mut self, (key, value): (T, String)) -> Option<(T, String)>
             where T: AsRef<str>
             {
+                #(
+                    let result = self.#deep_guzzles.guzzle((key, value));
+                    if result.is_none() { return None };
+                    let (key, value) = result.unwrap();
+                )*
                 match key.as_ref() {
                     #( #matchers => self.#keys = #parsers(value), )*
                     _ => return Some((key, value)),
