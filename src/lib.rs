@@ -193,6 +193,51 @@
 //!
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
+//!
+//! Another problem with metadata (particularly Wordpress metdata) is that it's flat. Take our location for example, if it
+//! was part of a users metadata, we may not want to apply it directly to a `User` struct, but rather to a `Location`
+//! struct, which is part of a `User`.
+//!
+//! Unfortunately, Rust macro's can not yet gather information about the Type they are opperating on, so we can not simply
+//! observe that a field _also_ "impls Guzzle", we have to tell the derive that information ourselves. We do this with the
+//! `deep_guzzle` attribute.
+//!
+//! ```rust
+//! use guzzle::Guzzle;
+//!
+//! #[derive(Default, Guzzle)]
+//! struct Location {
+//!     lat: String,
+//!     lng: String,
+//! }
+//!
+//! #[derive(Default, Guzzle)]
+//! struct User {
+//!     name: String,
+//!     #[deep_guzzle]
+//!     location: Location,
+//! }
+//!
+//! let metadata = vec![
+//!     ("lat", "51.5074° N".to_string()),
+//!     ("lng", "0.1278° W".to_string()),
+//!     ("name", "Robert Tables".to_string()),
+//!     ("some-other-key", "some-other-key".to_string()),
+//! ];
+//!
+//! let mut user = User::default();
+//!
+//! let remaining_data: Vec<(&str, String)> = metadata
+//!     .into_iter()
+//!     .filter_map(|v| user.guzzle(v))
+//!     .collect();
+//!
+//! assert_eq!(user.name, "Robert Tables".to_string());
+//! assert_eq!(user.location.lat, "51.5074° N".to_string());
+//! assert_eq!(user.location.lng, "0.1278° W".to_string());
+//!
+//! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
+//! ```
 
 pub use guzzle_derive::*;
 
