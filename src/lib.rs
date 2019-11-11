@@ -5,15 +5,6 @@
 //! [![GitHub license](https://img.shields.io/github/license/apolitical/guzzle.svg)](https://github.com/apolitical/guzzle/blob/master/LICENSE.md)
 //! This project is an experimental work in progress and the interface may change.
 //!
-//! ToDo:
-//! -----
-//!
-//! - [x] Parse types
-//! - [x] Use attributes
-//! - [x] Toggle off per attribute
-//! - [ ] Recurse over objects that also implement the trait
-//! - [ ] Open source and release
-//!
 //! What problem are we trying to solve?
 //! ------------------------------------
 //!
@@ -51,7 +42,7 @@
 //! ];
 //!
 //! let mut location = Location::default();
-//! let remaining_data: Vec<(&str, String)> = metadata
+//! let _remaining_data: Vec<(&str, String)> = metadata
 //!     .into_iter()
 //!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
@@ -86,8 +77,8 @@
 //!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
 //!
-//! assert_eq!(location.lat, "51.5074° N".to_string());
-//! assert_eq!(location.lng, "0.1278° W".to_string());
+//! assert_eq!(&location.lat, "51.5074° N");
+//! assert_eq!(&location.lng, "0.1278° W");
 //!
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
@@ -119,8 +110,8 @@
 //!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
 //!
-//! assert_eq!(location.lat, "51.5074° N".to_string());
-//! assert_eq!(location.lng, "0.1278° W".to_string());
+//! assert_eq!(&location.lat, "51.5074° N");
+//! assert_eq!(&location.lng, "0.1278° W");
 //!
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
@@ -150,7 +141,7 @@
 //!     .filter_map(|v| location.guzzle(v))
 //!     .collect();
 //!
-//! assert_eq!(location.lat, "51.5074° N".to_string());
+//! assert_eq!(&location.lat, "51.5074° N");
 //!
 //! assert_eq!(remaining_data, [
 //!     ("lng", "0.1278° W".to_string()),
@@ -213,6 +204,9 @@
 //!
 //! #[derive(Default, Guzzle)]
 //! struct User {
+//!     // Optionally you can use #[guzzle], currently this behaves as if you didn't tag it but
+//!     // in the future you may be able to toggle the default behavior so this will be used then
+//!     #[guzzle]
 //!     name: String,
 //!     #[deep_guzzle]
 //!     location: Location,
@@ -232,9 +226,9 @@
 //!     .filter_map(|v| user.guzzle(v))
 //!     .collect();
 //!
-//! assert_eq!(user.name, "Robert Tables".to_string());
-//! assert_eq!(user.location.lat, "51.5074° N".to_string());
-//! assert_eq!(user.location.lng, "0.1278° W".to_string());
+//! assert_eq!(&user.name, "Robert Tables");
+//! assert_eq!(&user.location.lat, "51.5074° N");
+//! assert_eq!(&user.location.lng, "0.1278° W");
 //!
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
@@ -358,51 +352,89 @@ mod tests {
         fn u64_parser(s: String) -> u64 {
             s.parse().unwrap()
         }
+        fn bool_parser(s: String) -> bool {
+            s.parse().unwrap()
+        }
 
         #[derive(Default, Guzzle)]
-        struct AttributeDemo {
-            /// This field is not annotated, therefore its field is `basic` and its keys contain
-            /// one string which is the same as the name `basic`.
+        struct TypeThatAlsoImplementsGuzzle {
+            /// This struct represents some deeply nested data
+            #[guzzle(keys = ["deep_data"], parser = bool_parser)]
+            deeply_nested_data: bool
+        }
+
+        #[derive(Default, Guzzle)]
+        struct GuzzleExample {
+            /// This field is annotated with noguzzle, therefore it will not be parsed by guzzle
+            #[noguzzle]
+            ignored: String,
+
+            /// This field is not annotated, so if a key matches the field name, it will set the value
             basic: String,
+
+            /// This field is annotated, but with no keys, so it uses the field name as a key
+            /// Currently `#[guzzle]` doesn't do anything different to the default behavior (see
+            /// above), but in the future the default behaviour may be toggleable.
+            #[guzzle]
+            basic_too: String,
+
             /// This field may be filled from multiple keys
             #[guzzle(keys = ["one", "two"])]
             listed_keys: String,
+
             /// This field is not a string, you must provider a parser that will transform it into
             /// the correct type
             #[guzzle(parser = u64_parser)]
             other_types: u64,
+
             /// This field isn't a string and has multiple keys
             #[guzzle(parser = u64_parser, keys = ["three", "four"])]
             other_types_with_listed_keys: u64,
-            /// This field will be ignored
-            #[noguzzle]
-            ignored_field: String,
+
+            /// Guzzle will wire up this field so that data being guzzled by the `GuzzleExample`
+            /// will first be sent to the `TypeThatAlsoImplementsGuzzle`. If the
+            /// `TypeThatAlsoImplementsGuzzle` consumes the value, `GuzzleExample` will not.
+            #[deep_guzzle]
+            recurse_guzzle_to_populate_this_field: TypeThatAlsoImplementsGuzzle,
         }
 
         #[test]
         fn everything() {
             let test_data: Vec<(&str, String)> = vec![
                 ("basic", "basic info".to_string()),
+                ("basic_too", "more basic info".to_string()),
                 ("one", "1".to_string()),
                 ("two", "2".to_string()),
                 ("other_types", "20".to_string()),
                 ("three", "3".to_string()),
                 ("four", "4".to_string()),
-                ("ignored_field", "ignored data".to_string()),
+                ("ignored", "ignored data".to_string()),
+                ("deep_data", "true".to_string())
             ];
 
-            let mut attribute_demo = AttributeDemo::default();
+            let mut guzzle_example = GuzzleExample::default();
+
+            // This just makes sure deeply_nested_data isn't accidentally set to true
+            assert!(!guzzle_example.recurse_guzzle_to_populate_this_field.deeply_nested_data);
 
             let remaining_data: Vec<(&str, String)> = test_data
                 .into_iter()
-                .filter_map(|v| attribute_demo.guzzle(v))
+                .filter_map(|v| guzzle_example.guzzle(v))
                 .collect();
 
-            //            assert_eq!(attribute_demo.basic, "basic info".to_string());
-            assert_eq!(attribute_demo.listed_keys, "2".to_string());
-            assert_eq!(attribute_demo.other_types, 20);
-            assert_eq!(attribute_demo.other_types_with_listed_keys, 4);
-            assert!(attribute_demo.ignored_field.is_empty());
+            // All appropriate fields are now set
+            assert_eq!(guzzle_example.basic, "basic info".to_string());
+            assert_eq!(guzzle_example.basic_too, "more basic info".to_string());
+            assert_eq!(guzzle_example.listed_keys, "2".to_string());
+            assert_eq!(guzzle_example.other_types, 20);
+            assert_eq!(guzzle_example.other_types_with_listed_keys, 4);
+
+            // Including the deeply nested field
+            assert!(guzzle_example.recurse_guzzle_to_populate_this_field.deeply_nested_data);
+
+            // Ignored data is left over
+            assert!(guzzle_example.ignored.is_empty());
+            assert_eq!(remaining_data, vec![("ignored", "ignored data".to_string())]);
         }
     }
 }
