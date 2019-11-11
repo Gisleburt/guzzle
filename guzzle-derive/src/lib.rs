@@ -7,7 +7,7 @@ use crate::attr::FieldAttribute;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed};
 
-#[proc_macro_derive(Guzzle, attributes(guzzle, noguzzle, deep_guzzle))]
+#[proc_macro_derive(Guzzle, attributes(guzzle, no_guzzle, deep_guzzle))]
 pub fn guzzle_macro_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate

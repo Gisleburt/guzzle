@@ -116,7 +116,7 @@ assert_eq!(location.lng, "0.1278° W".to_string());
 assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 ```
 
-If you want to prevent a field from receiving data from guzzle, add `#[noguzzle]`
+If you want to prevent a field from receiving data from guzzle, add `#[no_guzzle]`
 
 ```rust
 use guzzle::Guzzle;
@@ -124,7 +124,7 @@ use guzzle::Guzzle;
 #[derive(Default, Guzzle)]
 struct Location {
     lat: String,
-    #[noguzzle]
+    #[no_guzzle]
     lng: String,
 }
 

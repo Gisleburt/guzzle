@@ -15,8 +15,8 @@ use syn::{
 /// ```ignore
 /// #[derive(Guzzle)]
 /// struct GuzzleExample {
-///     /// This field is annotated with noguzzle, therefore it will not be parsed by guzzle
-///     #[noguzzle]
+///     /// This field is annotated with no_guzzle, therefore it will not be parsed by guzzle
+///     #[no_guzzle]
 ///     ignored: String,
 ///
 ///     /// This field is not annotated, so if a key matches the field name, it will set the value
@@ -113,7 +113,7 @@ fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> Option<Guzzl
         "deep_guzzle" => {
             Some(GuzzleAttribute::RecurseAttribute(ident.clone()))
         }
-        "noguzzle" => {
+        "no_guzzle" => {
             Some(GuzzleAttribute::NoGuzzle)
         }
         _ => None

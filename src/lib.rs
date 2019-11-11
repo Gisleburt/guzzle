@@ -60,8 +60,8 @@
 //!
 //! #[derive(Default, Guzzle)]
 //! struct GuzzleExample {
-//!     /// This field is annotated with noguzzle, therefore it will not be parsed by guzzle
-//!     #[noguzzle]
+//!     /// This field is annotated with no_guzzle, therefore it will not be parsed by guzzle
+//!     #[no_guzzle]
 //!     ignored: String,
 //!
 //!     /// This field is not annotated, so if a key matches the field name, it will set the value
@@ -278,8 +278,8 @@ mod tests {
 
         #[derive(Default, Guzzle)]
         struct GuzzleExample {
-            /// This field is annotated with noguzzle, therefore it will not be parsed by guzzle
-            #[noguzzle]
+            /// This field is annotated with no_guzzle, therefore it will not be parsed by guzzle
+            #[no_guzzle]
             ignored: String,
 
             /// This field is not annotated, so if a key matches the field name, it will set the value
