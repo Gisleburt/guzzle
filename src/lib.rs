@@ -34,10 +34,10 @@
 //! }
 //!
 //! impl Location {
-//!     fn guzzle(&mut self, (key, value): (String, String)) -> Option<(String, String)> {
+//!     fn guzzle<T: AsRef<str>>(&mut self, (key, value): (T, String)) -> Option<(T, String)> {
 //!         match key.as_ref() {
-//!             "location_lat" => self.lat = value,
-//!             "location_lng" => self.lng = value,
+//!             "lat" => self.lat = value,
+//!             "lng" => self.lng = value,
 //!             _ => return Some((key, value)),
 //!         };
 //!         None
@@ -45,32 +45,37 @@
 //! }
 //!
 //! let metadata = vec![
-//!     ("location_lat".to_string(), "51.5074° N".to_string()),
-//!     ("location_lng".to_string(), "0.1278° W".to_string()),
-//!     ("author".to_string(), "danielmason".to_string()),
+//!     ("lat", "51.5074° N".to_string()),
+//!     ("lng", "0.1278° W".to_string()),
+//!     ("author", "danielmason".to_string()),
 //! ];
 //!
 //! let mut location = Location::default();
-//! let left_overs = metadata.into_iter().filter_map(|data| location.guzzle(data));
+//! let remaining_data: Vec<(&str, String)> = metadata
+//!     .into_iter()
+//!     .filter_map(|v| location.guzzle(v))
+//!     .collect();
 //! ```
 //!
-//! However, we don't want to have to implement the same function over and over. Instead we can use the custom derive
-//! `Guzzle`.
+//! However, we don't want to have to implement the same function over and over, that's why we created Guzzle. Instead we can use the custom derive
+//!
+//! Using Guzzle
+//! ------------
+//!
+//! If your metadata happens to have keys that match your structs field names, all you need to do is `#[derive(Guzzle)]`.
 //!
 //! ```rust
 //! use guzzle::Guzzle;
 //!
 //! #[derive(Default, Guzzle)]
 //! struct Location {
-//!     #[guzzle(keys = ["location_lat"])]
 //!     lat: String,
-//!     #[guzzle(keys = ["location_lng"])]
 //!     lng: String,
 //! }
 //!
 //! let metadata = vec![
-//!     ("location_lat", "51.5074° N".to_string()),
-//!     ("location_lng", "0.1278° W".to_string()),
+//!     ("lat", "51.5074° N".to_string()),
+//!     ("lng", "0.1278° W".to_string()),
 //!     ("some-other-key", "some-other-key".to_string()),
 //! ];
 //!
@@ -87,20 +92,23 @@
 //! assert_eq!(remaining_data, [("some-other-key", "some-other-key".to_string())]);
 //! ```
 //!
-//! If your fields names are the same as your meta data keys, you do not need to specify them.
+//! Often times though, your metadata keys won't match your structs fields. For this, you can use the `#[guzzle]` field
+//! attribute to list with keys should be used.
 //!
 //! ```rust
 //! use guzzle::Guzzle;
 //!
 //! #[derive(Default, Guzzle)]
 //! struct Location {
+//!     #[guzzle(keys = ["location_lat"])]
 //!     lat: String,
+//!     #[guzzle(keys = ["location_lng"])]
 //!     lng: String,
 //! }
 //!
 //! let metadata = vec![
-//!     ("lat", "51.5074° N".to_string()),
-//!     ("lng", "0.1278° W".to_string()),
+//!     ("location_lat", "51.5074° N".to_string()),
+//!     ("location_lng", "0.1278° W".to_string()),
 //!     ("some-other-key", "some-other-key".to_string()),
 //! ];
 //!
