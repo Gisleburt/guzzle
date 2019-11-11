@@ -8,15 +8,28 @@ use syn::{
     Expr, Ident, LitStr, Token,
 };
 
+pub enum GuzzleAttribute {
+    KeyedAttribute(GuzzleKeyedAttribute),
+    RecurseGuzzle(Expr),
+}
+
+impl Default for GuzzleAttribute {
+    fn default() -> Self {
+        GuzzleAttribute::KeyedAttribute(
+            GuzzleKeyedAttribute::default()
+        )
+    }
+}
+
 #[derive(Default)]
-pub struct GuzzleAttributes {
+pub struct GuzzleKeyedAttribute {
     pub keys: Keys,
     pub parser: Option<Expr>,
 }
 
-impl GuzzleAttributes {
-    pub fn new() -> GuzzleAttributes {
-        GuzzleAttributes::default()
+impl GuzzleKeyedAttribute {
+    pub fn new() -> GuzzleKeyedAttribute {
+        GuzzleKeyedAttribute::default()
     }
 
     pub fn set_default_key_if_none(&mut self, ident: Ident) {
@@ -26,28 +39,28 @@ impl GuzzleAttributes {
     }
 }
 
-impl Parse for GuzzleAttributes {
+impl Parse for GuzzleKeyedAttribute {
     fn parse(input: &ParseBuffer) -> syn::Result<Self> {
         let content;
         parenthesized!(content in input);
-        let punctuated_attrs: Punctuated<GuzzleAttribute, Token![,]> =
-            content.parse_terminated(GuzzleAttribute::parse)?;
+        let punctuated_attrs: Punctuated<RawGuzzleKeyedAttribute, Token![,]> =
+            content.parse_terminated(RawGuzzleKeyedAttribute::parse)?;
 
-        let mut guzzle_attributes = GuzzleAttributes::default();
+        let mut guzzle_attributes = GuzzleKeyedAttribute::default();
         punctuated_attrs.into_iter().for_each(|attr| match attr {
-            GuzzleAttribute::Keys(keys) => guzzle_attributes.keys = keys,
-            GuzzleAttribute::Parser(parser) => guzzle_attributes.parser = Some(parser),
+            RawGuzzleKeyedAttribute::Keys(keys) => guzzle_attributes.keys = keys,
+            RawGuzzleKeyedAttribute::Parser(parser) => guzzle_attributes.parser = Some(parser),
         });
         Ok(guzzle_attributes)
     }
 }
 
-pub enum GuzzleAttribute {
+pub enum RawGuzzleKeyedAttribute {
     Keys(Keys),
     Parser(Expr),
 }
 
-impl Parse for GuzzleAttribute {
+impl Parse for RawGuzzleKeyedAttribute {
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
         let name: Ident = input.parse()?;
         let name_str = name.to_string();
@@ -57,8 +70,8 @@ impl Parse for GuzzleAttribute {
             input.parse::<Token![=]>()?; // skip '='
 
             match name_str.as_ref() {
-                "keys" => Ok(GuzzleAttribute::Keys(input.parse()?)),
-                "parser" => Ok(GuzzleAttribute::Parser(input.parse()?)),
+                "keys" => Ok(RawGuzzleKeyedAttribute::Keys(input.parse()?)),
+                "parser" => Ok(RawGuzzleKeyedAttribute::Parser(input.parse()?)),
                 _ => Err(input.error(format!("Unknown key: {}", name_str))),
             }
         } else {
@@ -104,7 +117,7 @@ impl Deref for Keys {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::attr::{GuzzleAttribute, GuzzleAttributes};
+    use crate::attr::{RawGuzzleKeyedAttribute, GuzzleKeyedAttribute};
     use quote::quote;
     use syn::{parse::Parser, parse2, punctuated::Punctuated, LitStr, Token};
 
@@ -140,9 +153,9 @@ mod tests {
     #[test]
     fn parse_named_slice() -> Result<(), syn::Error> {
         let token_stream = quote! { keys = ["key1", "key2"] };
-        let attribute: GuzzleAttribute = parse2(token_stream).unwrap();
+        let attribute: RawGuzzleKeyedAttribute = parse2(token_stream).unwrap();
         let mut iter = match &attribute {
-            GuzzleAttribute::Keys(keys) => keys.iter(),
+            RawGuzzleKeyedAttribute::Keys(keys) => keys.iter(),
             _ => panic!("attribute was not 'keys'"),
         };
         assert_eq!("key1", &iter.next().unwrap().value());
@@ -154,7 +167,7 @@ mod tests {
     #[test]
     fn parse_named_slices() -> Result<(), syn::Error> {
         let token_stream = quote! { ( keys = ["key1", "key2"], keys = ["key3", "key4"] ) };
-        let attributes: GuzzleAttributes = parse2(token_stream).unwrap();
+        let attributes: GuzzleKeyedAttribute = parse2(token_stream).unwrap();
         let mut iter = attributes.keys.iter();
         assert_eq!("key3", &iter.next().unwrap().value());
         assert_eq!("key4", &iter.next().unwrap().value());
@@ -169,7 +182,7 @@ mod tests {
     #[test]
     fn parse_parser() -> Result<(), syn::Error> {
         let token_stream = quote! { parser = test_parser };
-        let attribute: GuzzleAttribute = parse2(token_stream)?;
+        let attribute: RawGuzzleKeyedAttribute = parse2(token_stream)?;
         Ok(())
     }
 }

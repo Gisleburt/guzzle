@@ -3,7 +3,7 @@ extern crate proc_macro;
 mod attr;
 
 use crate::proc_macro::TokenStream;
-use attr::GuzzleAttributes;
+use crate::attr::GuzzleAttribute;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Expr, Field, Fields, FieldsNamed, Ident, LitStr};
 
@@ -29,7 +29,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Expr, Field, Fields, FieldsNamed
 /// ```
 struct FieldAttribute<'a> {
     field: &'a Ident,
-    attributes: Option<GuzzleAttributes>,
+    attributes: Option<GuzzleAttribute>,
 }
 
 impl<'a> FieldAttribute<'a> {
@@ -37,10 +37,15 @@ impl<'a> FieldAttribute<'a> {
         self.attributes
             .as_ref()
             .map(|attr| {
-                attr.keys
-                    .iter()
-                    .map(|matcher| (self.field, matcher, &attr.parser))
-                    .collect()
+                // We only want to get arm parts from keyed attributes
+                if let GuzzleAttribute::KeyedAttribute(keyed_attr) = attr {
+                    keyed_attr.keys
+                        .iter()
+                        .map(|matcher| (self.field, matcher, &keyed_attr.parser))
+                        .collect()
+                } else {
+                    vec![]
+                }
             })
             .unwrap_or_default()
     }
@@ -51,7 +56,10 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
         // Default value for keys is just the name of the field
         let name_ident = field.ident.clone().unwrap();
 
-        let mut attributes = Some(GuzzleAttributes::new()); // Default blank attributes
+        // Unless otherwise turned off we'll default to a keyed attribute with the same name as the
+        // field (see below)
+        let mut attributes = Some(GuzzleAttribute::default());
+
         let all_attrs = &field.attrs;
         for attr in all_attrs {
             let path = &attr.path;
@@ -59,15 +67,20 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
                 "guzzle" => {
                     let tokens = attr.tts.clone();
                     let is_empty = tokens.is_empty();
-                    attributes = Some(syn::parse2(tokens).unwrap_or_else(|err| {
-                        let tokens_str = if is_empty {
-                            String::new()
-                        } else {
-                            format!("problematic tokens: {}", &attr.tts)
-                        };
-                        panic!("{}, {}", err.to_string(), tokens_str)
-                    }));
+                    attributes = Some(
+                        GuzzleAttribute::KeyedAttribute(
+                            syn::parse2(tokens).unwrap_or_else(|err| {
+                                let tokens_str = if is_empty {
+                                    String::new()
+                                } else {
+                                    format!("problematic tokens: {}", &attr.tts)
+                                };
+                                panic!("{}, {}", err.to_string(), tokens_str)
+                            })
+                        )
+                    );
                 }
+                "deep_guzzle" => {}
                 "noguzzle" => {
                     attributes = None;
                     break;
@@ -77,8 +90,12 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
         }
         // If attributes are Some, make sure at least one key is available by using the field name
         attributes = attributes.map(|mut attr| {
-            attr.set_default_key_if_none(name_ident);
-            attr
+            if let GuzzleAttribute::KeyedAttribute(mut keyed_attr) = attr {
+                keyed_attr.set_default_key_if_none(name_ident);
+                GuzzleAttribute::KeyedAttribute(keyed_attr)
+            } else {
+                attr
+            }
         });
 
         let field = field.ident.as_ref().unwrap();
