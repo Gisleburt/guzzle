@@ -361,4 +361,14 @@ mod tests {
             );
         }
     }
+
+    mod try_build {
+        use trybuild::TestCases;
+
+        #[test]
+        fn pass() {
+            let test_case = trybuild::TestCases::new();
+            test_case.pass("tests/passing/*.rs");
+        }
+    }
 }
