@@ -186,7 +186,7 @@ impl Parse for GuzzleKeyedAttribute {
     fn parse(input: &ParseBuffer) -> syn::Result<Self> {
         let mut guzzle_attributes = GuzzleKeyedAttribute::default();
         // the guzzle attribute may have brackets containing more details or it may not
-        // eg `#[guzzle()]` or just `#[guzzle]
+        // eg `#[guzzle()]` or  `#[guzzle]
         if input.peek(syn::token::Paren) {
             let content;
             parenthesized!(content in input);
