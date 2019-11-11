@@ -48,38 +48,23 @@ use quote::quote;
 /// ```
 pub struct FieldAttribute<'a> {
     field: &'a Ident,
-    attributes: Option<GuzzleAttribute>,
+    attributes: GuzzleAttribute,
 }
 
 impl<'a> FieldAttribute<'a> {
     pub fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr, &Option<Expr>)> {
-        self.attributes
-            .as_ref()
-            .map(|attr| {
-                // We only want to get arm parts from keyed attributes
-                if let GuzzleAttribute::KeyedAttribute(keyed_attr) = attr {
-                    keyed_attr.keys
+        self.attributes.keyed_attribute()
+            .map(|keyed_attr| {
+                keyed_attr.keys
                         .iter()
                         .map(|matcher| (self.field, matcher, &keyed_attr.parser))
                         .collect()
-                } else {
-                    vec![]
-                }
             })
             .unwrap_or_default()
     }
 
     pub fn get_recursion(&self) -> Option<&Ident> {
-        self.attributes
-            .as_ref()
-            .map(|attr| {
-                if let GuzzleAttribute::RecurseAttribute(expr) = attr {
-                    Some(expr)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_default()
+        self.attributes.recurse_attribute()
     }
 }
 
@@ -90,7 +75,7 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
 
         // Unless otherwise turned off we'll default to a keyed attribute with the same name as the
         // field (see below)
-        let mut attributes = Some(GuzzleAttribute::default());
+        let mut attributes = GuzzleAttribute::from_ident(&name_ident);
 
         let all_attrs = &field.attrs;
         for attr in all_attrs {
@@ -99,39 +84,33 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
                 "guzzle" => {
                     let tokens = attr.tts.clone();
                     let is_empty = tokens.is_empty();
-                    attributes = Some(
-                        GuzzleAttribute::KeyedAttribute(
-                            syn::parse2(tokens).unwrap_or_else(|err| {
-                                let tokens_str = if is_empty {
-                                    String::new()
-                                } else {
-                                    format!("problematic tokens: {}", &attr.tts)
-                                };
-                                panic!("{}, {}", err.to_string(), tokens_str)
-                            })
-                        )
-                    );
+                    let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens).unwrap_or_else(|err| {
+                        let tokens_str = if is_empty {
+                            String::new()
+                        } else {
+                            format!("problematic tokens: {}", &attr.tts)
+                        };
+                        panic!("{}, {}", err.to_string(), tokens_str)
+                    });
+
+                    if keyed_attr.keys.is_empty() {
+                        keyed_attr.keys = Keys::from_ident(&name_ident);
+                    }
+
+                    attributes = GuzzleAttribute::KeyedAttribute(keyed_attr);
+                    break;
                 }
                 "deep_guzzle" => {
-                    attributes = Some(GuzzleAttribute::RecurseAttribute(name_ident.clone()));
+                    attributes = GuzzleAttribute::RecurseAttribute(name_ident.clone());
                     break;
                 }
                 "noguzzle" => {
-                    attributes = None;
+                    attributes = GuzzleAttribute::NoGuzzle;
                     break;
                 }
                 _ => {}
             }
         }
-        // If attributes are Some, make sure at least one key is available by using the field name
-        attributes = attributes.map(|attr| {
-            if let GuzzleAttribute::KeyedAttribute(mut keyed_attr) = attr {
-                keyed_attr.set_default_key_if_none(name_ident);
-                GuzzleAttribute::KeyedAttribute(keyed_attr)
-            } else {
-                attr
-            }
-        });
 
         let field = field.ident.as_ref().unwrap();
         FieldAttribute { field, attributes }
@@ -158,13 +137,28 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
 pub enum GuzzleAttribute {
     KeyedAttribute(GuzzleKeyedAttribute),
     RecurseAttribute(Ident),
+    NoGuzzle,
 }
 
-impl Default for GuzzleAttribute {
-    fn default() -> Self {
+impl GuzzleAttribute {
+    fn from_ident(ident: &Ident) -> Self {
         GuzzleAttribute::KeyedAttribute(
-            GuzzleKeyedAttribute::default()
+            GuzzleKeyedAttribute::from_ident(ident)
         )
+    }
+
+    pub fn keyed_attribute(&self) -> Option<&GuzzleKeyedAttribute> {
+        match self {
+            GuzzleAttribute::KeyedAttribute(attribute) => Some(attribute),
+            _ => None,
+        }
+    }
+
+    pub fn recurse_attribute(&self) -> Option<&Ident> {
+        match self {
+            GuzzleAttribute::RecurseAttribute(ident) => Some(ident),
+            _ => None,
+        }
     }
 }
 
@@ -175,9 +169,10 @@ pub struct GuzzleKeyedAttribute {
 }
 
 impl GuzzleKeyedAttribute {
-    pub fn set_default_key_if_none(&mut self, ident: Ident) {
-        if self.keys.is_empty() {
-            self.keys = Keys(vec![LitStr::new(ident.to_string().as_str(), ident.span())])
+    pub fn from_ident(ident: &Ident) -> GuzzleKeyedAttribute {
+        GuzzleKeyedAttribute {
+            keys: Keys::from_ident(ident),
+            parser: None,
         }
     }
 }
@@ -185,8 +180,8 @@ impl GuzzleKeyedAttribute {
 impl Parse for GuzzleKeyedAttribute {
     fn parse(input: &ParseBuffer) -> syn::Result<Self> {
         let mut guzzle_attributes = GuzzleKeyedAttribute::default();
-        // the guzzle attribute may have brackets containing more details or it may not
-        // eg `#[guzzle()]` or  `#[guzzle]
+        // the guzzle attribute may have brackets containing more details, or it may not
+        // eg `#[guzzle()]` and `#[guzzle] should both be valid
         if input.peek(syn::token::Paren) {
             let content;
             parenthesized!(content in input);
@@ -231,6 +226,12 @@ impl Parse for RawGuzzleKeyedAttribute {
 /// impl `Deref` for when we want to see whats inside.
 #[derive(Default)]
 pub struct Keys(Vec<LitStr>);
+
+impl Keys {
+    pub fn from_ident(ident: &Ident) -> Keys {
+        Keys(vec![LitStr::new(ident.to_string().as_str(), ident.span())])
+    }
+}
 
 impl Parse for Keys {
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {

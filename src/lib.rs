@@ -273,7 +273,7 @@ mod tests {
         struct TypeThatAlsoImplementsGuzzle {
             /// This struct represents some deeply nested data
             #[guzzle(keys = ["deep_data"], parser = bool_parser)]
-            deeply_nested_data: bool
+            deeply_nested_data: bool,
         }
 
         #[derive(Default, Guzzle)]
@@ -322,13 +322,17 @@ mod tests {
                 ("three", "3".to_string()),
                 ("four", "4".to_string()),
                 ("ignored", "ignored data".to_string()),
-                ("deep_data", "true".to_string())
+                ("deep_data", "true".to_string()),
             ];
 
             let mut guzzle_example = GuzzleExample::default();
 
             // This just makes sure deeply_nested_data isn't accidentally set to true
-            assert!(!guzzle_example.recurse_guzzle_to_populate_this_field.deeply_nested_data);
+            assert!(
+                !guzzle_example
+                    .recurse_guzzle_to_populate_this_field
+                    .deeply_nested_data
+            );
 
             let remaining_data: Vec<(&str, String)> = test_data
                 .into_iter()
@@ -343,11 +347,18 @@ mod tests {
             assert_eq!(guzzle_example.other_types_with_listed_keys, 4);
 
             // Including the deeply nested field
-            assert!(guzzle_example.recurse_guzzle_to_populate_this_field.deeply_nested_data);
+            assert!(
+                guzzle_example
+                    .recurse_guzzle_to_populate_this_field
+                    .deeply_nested_data
+            );
 
             // Ignored data is left over
             assert!(guzzle_example.ignored.is_empty());
-            assert_eq!(remaining_data, vec![("ignored", "ignored data".to_string())]);
+            assert_eq!(
+                remaining_data,
+                vec![("ignored", "ignored data".to_string())]
+            );
         }
     }
 }
