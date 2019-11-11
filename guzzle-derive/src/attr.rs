@@ -1,3 +1,4 @@
+use quote::quote;
 use std::default::Default;
 use std::fmt::{Debug, Error as FormatError, Formatter};
 use std::ops::Deref;
@@ -5,9 +6,8 @@ use syn::{
     bracketed, parenthesized,
     parse::{Parse, ParseBuffer},
     punctuated::Punctuated,
-    Expr, Field, Ident, LitStr, Token,
+    Attribute, Expr, Field, Ident, LitStr, Token
 };
-use quote::quote;
 
 /// This structure models the guzzle attribute. This is a work in progress and not only won't
 /// function as is, but may change dramatically.
@@ -48,12 +48,12 @@ use quote::quote;
 /// ```
 pub struct FieldAttribute<'a> {
     field: &'a Ident,
-    attributes: GuzzleAttribute,
+    attribute: GuzzleAttribute,
 }
 
 impl<'a> FieldAttribute<'a> {
     pub fn get_arm_parts(&self) -> Vec<(&Ident, &LitStr, &Option<Expr>)> {
-        self.attributes.keyed_attribute()
+        self.attribute.keyed_attribute()
             .map(|keyed_attr| {
                 keyed_attr.keys
                         .iter()
@@ -64,7 +64,7 @@ impl<'a> FieldAttribute<'a> {
     }
 
     pub fn get_recursion(&self) -> Option<&Ident> {
-        self.attributes.recurse_attribute()
+        self.attribute.recurse_attribute()
     }
 }
 
@@ -75,45 +75,48 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
 
         // Unless otherwise turned off we'll default to a keyed attribute with the same name as the
         // field (see below)
-        let mut attributes = GuzzleAttribute::from_ident(&name_ident);
+        let mut attribute = GuzzleAttribute::from_ident(&name_ident);
 
-        let all_attrs = &field.attrs;
-        for attr in all_attrs {
-            let path = &attr.path;
-            match quote!(#path).to_string().as_ref() {
-                "guzzle" => {
-                    let tokens = attr.tts.clone();
-                    let is_empty = tokens.is_empty();
-                    let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens).unwrap_or_else(|err| {
-                        let tokens_str = if is_empty {
-                            String::new()
-                        } else {
-                            format!("problematic tokens: {}", &attr.tts)
-                        };
-                        panic!("{}, {}", err.to_string(), tokens_str)
-                    });
-
-                    if keyed_attr.keys.is_empty() {
-                        keyed_attr.keys = Keys::from_ident(&name_ident);
-                    }
-
-                    attributes = GuzzleAttribute::KeyedAttribute(keyed_attr);
-                    break;
-                }
-                "deep_guzzle" => {
-                    attributes = GuzzleAttribute::RecurseAttribute(name_ident.clone());
-                    break;
-                }
-                "noguzzle" => {
-                    attributes = GuzzleAttribute::NoGuzzle;
-                    break;
-                }
-                _ => {}
+        for attr in &field.attrs {
+            if let Some(new_attribute) = raw_attr_to_guzzle_attr(&name_ident, &attr) {
+                attribute = new_attribute;
+                break;
             }
         }
 
         let field = field.ident.as_ref().unwrap();
-        FieldAttribute { field, attributes }
+        FieldAttribute { field, attribute }
+    }
+}
+
+fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> Option<GuzzleAttribute> {
+    let path = &attribute.path;
+    match quote!(#path).to_string().as_ref() {
+        "guzzle" => {
+            let tokens = attribute.tts.clone();
+            let is_empty = tokens.is_empty();
+            let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens).unwrap_or_else(|err| {
+                let tokens_str = if is_empty {
+                    String::new()
+                } else {
+                    format!("problematic tokens: {}", &attribute.tts)
+                };
+                panic!("{}, {}", err.to_string(), tokens_str)
+            });
+
+            if keyed_attr.keys.is_empty() {
+                keyed_attr.keys = Keys::from_ident(ident);
+            }
+
+            Some(GuzzleAttribute::KeyedAttribute(keyed_attr))
+        }
+        "deep_guzzle" => {
+            Some(GuzzleAttribute::RecurseAttribute(ident.clone()))
+        }
+        "noguzzle" => {
+            Some(GuzzleAttribute::NoGuzzle)
+        }
+        _ => None
     }
 }
 
