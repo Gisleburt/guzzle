@@ -3,61 +3,16 @@
 //!
 //! [![GitHub release](https://img.shields.io/github/release/apolitical/guzzle.svg)](https://github.com/apolitical/guzzle/releases)
 //! [![GitHub license](https://img.shields.io/github/license/apolitical/guzzle.svg)](https://github.com/apolitical/guzzle/blob/master/LICENSE.md)
-//! This project is an experimental work in progress and the interface may change.
 //!
-//! What problem are we trying to solve?
-//! ------------------------------------
+//! What is is?
+//! -----------
 //!
-//! We're using a Wordpress database which contains non normalised data in "meta" tables. These
-//! tables give us data as a set of keys and values that are attached to another object.
+//! Guzzle is a Custom Derive that will help you pass a stream of keys and values into a struct.
 //!
-//! For example, a single post in wp_posts may have multiple entries in wp_postmeta such as
-//! `location_lat`, `location_lng`, `author`. We may wish to take those first two `location_*` keys
-//! and put the values into a `Location` struct, but leave any other keys for use in different
-//! structs.
+//! Usage
+//! -----
 //!
-//! A handy way to do this is to turn the meta data into iterator, then use a filter_map. For
-//! example:
-//!
-//! ```rust
-//! #[derive(Default)]
-//! struct Location {
-//!     lat: String,
-//!     lng: String,
-//! }
-//!
-//! impl Location {
-//!     fn guzzle<T: AsRef<str>>(&mut self, (key, value): (T, String)) -> Option<(T, String)> {
-//!         match key.as_ref() {
-//!             "lat" => self.lat = value,
-//!             "lng" => self.lng = value,
-//!             _ => return Some((key, value)),
-//!         };
-//!         None
-//!     }
-//! }
-//!
-//! let metadata = vec![
-//!     ("lat", "51.5074° N".to_string()),
-//!     ("lng", "0.1278° W".to_string()),
-//!     ("author", "danielmason".to_string()),
-//! ];
-//!
-//! let mut location = Location::default();
-//! let _remaining_data: Vec<(&str, String)> = metadata
-//!     .into_iter()
-//!     .filter_map(|v| location.guzzle(v))
-//!     .collect();
-//! ```
-//!
-//! However, we don't want to have to implement the same function over and over, that's why we
-//! created Guzzle. Instead we can use the custom derive
-//!
-//! Using Guzzle
-//! ------------
-//!
-//! If your metadata happens to have keys that match your structs field names, all you need to do
-//! is `#[derive(Guzzle)]`.
+//! Derive Guzzle, then use the attribute tags to annotate your struct
 //!
 //! ```rust
 //! use guzzle::Guzzle;
@@ -114,7 +69,7 @@
 //! }
 //!
 //! // These are our keys and values
-//! let test_data: Vec<(&str, String)> = vec![
+//! let example_data: Vec<(&str, String)> = vec![
 //!     ("basic", "basic info".to_string()),
 //!     ("basic_too", "more basic info".to_string()),
 //!     ("one", "1".to_string()),
@@ -130,7 +85,7 @@
 //! let mut guzzle_example = GuzzleExample::default();
 //!
 //! // Feed our keys and values to our object, capturing any that weren't consumed
-//! let remaining_data: Vec<(&str, String)> = test_data
+//! let remaining_data: Vec<(&str, String)> = example_data
 //!     .into_iter()
 //!     .filter_map(|v| guzzle_example.guzzle(v))
 //!     .collect();
@@ -149,6 +104,13 @@
 //! assert!(guzzle_example.ignored.is_empty());
 //! assert_eq!(remaining_data, vec![("ignored", "ignored data".to_string())]);
 //! ```
+//!
+//! Example Use Case
+//! ----------------
+//!
+//! This project came out of a need to take Wordpress metadata data and put it into complex Rust
+//! structs.
+//!
 
 pub use guzzle_derive::*;
 

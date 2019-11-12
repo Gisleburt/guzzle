@@ -97,7 +97,7 @@ fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> SynResult<Op
     let path = &attribute.path;
     let attr = match quote!(#path).to_string().as_ref() {
         "guzzle" => {
-            let tokens = attribute.tts.clone();
+            let tokens = attribute.tokens.clone();
             let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens)?;
 
             // If we have a keyed attribute with no keys, we will use the ident
@@ -322,7 +322,7 @@ mod tests {
     #[test]
     fn parse_parser() -> Result<(), syn::Error> {
         let token_stream = quote! { parser = test_parser };
-        let attribute: RawGuzzleKeyedAttribute = parse2(token_stream)?;
+        let _attribute: RawGuzzleKeyedAttribute = parse2(token_stream)?;
         Ok(())
     }
 }

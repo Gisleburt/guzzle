@@ -1,6 +1,6 @@
 [package]
 name = "guzzle-derive"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Daniel Mason <daniel@danielmason.com>"]
 edition = "2018"
 license = "MIT"
@@ -13,5 +13,5 @@ repository = "https://github.com/apolitical/guzzle"
 proc-macro = true
 
 [dependencies]
-syn = "0.15.36"
-quote = "0.6.12"
+syn = "1.0.6"
+quote = "1.0.2"
