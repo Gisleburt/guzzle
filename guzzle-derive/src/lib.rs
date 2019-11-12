@@ -56,15 +56,15 @@ fn handle_errors(errors: Vec<syn::Error>) -> TokenStream {
 }
 
 fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStream {
-    let name = &ast.ident;
-
-    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
-
-    let results = fields_to_attributes(fields);
-    if results.is_err() {
-        return handle_errors(results.err().unwrap());
+    match fields_to_attributes(fields) {
+        Ok(attr) => attributes_to_generated_code(ast, attr),
+        Err(err) => handle_errors(err),
     }
-    let attributes = results.unwrap();
+}
+
+fn attributes_to_generated_code(ast: &DeriveInput, attributes: Vec<FieldAttribute>) -> TokenStream {
+    let name = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     let mut deep_guzzles = vec![];
     let mut keys = vec![];
