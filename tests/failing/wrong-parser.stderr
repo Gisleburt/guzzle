@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+ --> $DIR/wrong-parser.rs:3:24
+  |
+3 | #[derive(Default, Guzzle)]
+  |                        ^ expected u64, found bool
