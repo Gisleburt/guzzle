@@ -1,16 +1,15 @@
 extern crate proc_macro;
 
-mod attr;
-
-use crate::proc_macro::TokenStream;
-use crate::attr::FieldAttribute;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed};
+use crate::proc_macro::TokenStream;
+use crate::attr::FieldAttribute;
+
+mod attr;
 
 #[proc_macro_derive(Guzzle, attributes(guzzle, no_guzzle, deep_guzzle))]
 pub fn guzzle_macro_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
+    // Construct a representation of Rust code as an abstract syntax tree
     let ast = parse_macro_input!(input);
 
     // Build the trait implementation

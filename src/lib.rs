@@ -368,12 +368,14 @@ mod tests {
     }
 
     mod try_build {
-        use trybuild::TestCases;
+        mod should_pass {
+            use trybuild::TestCases;
 
-        #[test]
-        fn pass() {
-            let test_case = TestCases::new();
-            test_case.pass("tests/passing/*.rs");
+            #[test]
+            fn all_features() {
+                let test_case = TestCases::new();
+                test_case.pass("tests/passing/all-features.rs");
+            }
         }
     }
 }

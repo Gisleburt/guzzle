@@ -234,6 +234,12 @@ impl Keys {
 }
 
 impl Parse for Keys {
+    /// Parses the brakets around keys eg
+    /// ```text
+    /// [guzzle(keys = ["key1", "key2"])]
+    ///                ^^^^^^^^^^^^^^^^
+    ///                    this part
+    /// ```
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
         let content;
         bracketed!(content in input);
