@@ -1,0 +1,5 @@
+error[E0425]: cannot find function `u64_parser` in this scope
+ --> $DIR/missing-parser.rs:6:23
+  |
+6 |     #[guzzle(parser = u64_parser)]
+  |                       ^^^^^^^^^^ not found in this scope

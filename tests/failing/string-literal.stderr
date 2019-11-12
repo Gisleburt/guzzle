@@ -1,0 +1,18 @@
+error: expected literal
+ --> $DIR/string-literal.rs:6:22
+  |
+6 |     #[guzzle(keys = [one, two])]
+  |                      ^^^
+
+error[E0599]: no method named `guzzle` found for type `GuzzleExample` in the current scope
+  --> $DIR/string-literal.rs:23:40
+   |
+4  | struct GuzzleExample {
+   | -------------------- method `guzzle` not found for this
+...
+23 |         .filter_map(|v| guzzle_example.guzzle(v))
+   |                                        ^^^^^^ method not found in `GuzzleExample`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `guzzle`, perhaps you need to implement it:
+           candidate #1: `guzzle::Guzzle`

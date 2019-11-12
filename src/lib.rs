@@ -373,8 +373,8 @@ mod tests {
         #[test]
         fn everything() {
             let test_case = TestCases::new();
-            test_case.pass("tests/passing/all-features.rs");
-            test_case.compile_fail("tests/failing/string-literal.rs");
+            test_case.pass("tests/passing/*.rs");
+            test_case.compile_fail("tests/failing/*.rs");
         }
     }
 }

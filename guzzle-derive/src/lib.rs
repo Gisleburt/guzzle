@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-use quote::{quote, quote_spanned};
+use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed};
 use crate::proc_macro::TokenStream;
 use crate::attr::FieldAttribute;
@@ -46,12 +46,9 @@ fn fields_to_attributes(fields: &FieldsNamed) -> Result<Vec<FieldAttribute>, Vec
 
 fn handle_errors(errors: Vec<syn::Error>) -> TokenStream {
     let mut output = TokenStream::new();
-    errors.iter().for_each(|error| {
-        let ts = quote_spanned! {
-            error.span() => compile_error!("hello")
-        };
-        output.extend(TokenStream::from(ts));
-    });
+    for error in errors.iter() {
+        output.extend(TokenStream::from(error.to_compile_error()));
+    }
     output
 }
 
