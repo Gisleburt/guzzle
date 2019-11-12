@@ -375,7 +375,17 @@ mod tests {
             fn all_features() {
                 let test_case = TestCases::new();
                 test_case.pass("tests/passing/all-features.rs");
+                test_case.compile_fail("tests/failing/string-literal.rs");
             }
         }
+
+//        mod should_fail {
+//            use trybuild::TestCases;
+//
+//            #[test]
+//            fn string_literals() {
+//                let test_case = TestCases::new();
+//            }
+//        }
     }
 }

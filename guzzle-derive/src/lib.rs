@@ -1,9 +1,10 @@
 extern crate proc_macro;
 
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed};
 use crate::proc_macro::TokenStream;
 use crate::attr::FieldAttribute;
+use std::convert::TryInto;
 
 mod attr;
 
@@ -26,8 +27,32 @@ fn impl_guzzle(ast: DeriveInput) -> TokenStream {
     }
 }
 
-fn fields_to_attributes(fields: &FieldsNamed) -> Vec<FieldAttribute> {
-    fields.named.iter().map(|field| field.into()).collect()
+fn fields_to_attributes(fields: &FieldsNamed) -> Result<Vec<FieldAttribute>, Vec<syn::Error>> {
+    let mut oks = vec![];
+    let mut errs = vec![];
+    fields.named.iter().for_each(|field| {
+        match field.try_into() {
+            Ok(field_attribute) => oks.push(field_attribute),
+            Err(error) => errs.push(error),
+        };
+    });
+
+    if !errs.is_empty() {
+        Err(errs)
+    } else {
+        Ok(oks)
+    }
+}
+
+fn handle_errors(errors: Vec<syn::Error>) -> TokenStream {
+    let mut output = TokenStream::new();
+    errors.iter().for_each(|error| {
+        let ts = quote_spanned! {
+            error.span() => compile_error!("hello")
+        };
+        output.extend(TokenStream::from(ts));
+    });
+    output
 }
 
 fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStream {
@@ -35,7 +60,11 @@ fn impl_guzzle_named_fields(ast: &DeriveInput, fields: &FieldsNamed) -> TokenStr
 
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let attributes = fields_to_attributes(fields);
+    let results = fields_to_attributes(fields);
+    if results.is_err() {
+        return handle_errors(results.err().unwrap());
+    }
+    let attributes = results.unwrap();
 
     let mut deep_guzzles = vec![];
     let mut keys = vec![];

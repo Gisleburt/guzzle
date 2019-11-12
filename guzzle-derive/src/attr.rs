@@ -1,6 +1,5 @@
 use quote::quote;
 use std::default::Default;
-use std::fmt::{Debug, Error as FormatError, Formatter};
 use std::ops::Deref;
 use syn::{
     bracketed, parenthesized,
@@ -8,6 +7,9 @@ use syn::{
     punctuated::Punctuated,
     Attribute, Expr, Field, Ident, LitStr, Token
 };
+use std::convert::TryFrom;
+
+type SynResult<T> = Result<T, syn::Error>;
 
 /// This structure models the guzzle attribute. This is a work in progress and not only won't
 /// function as is, but may change dramatically.
@@ -68,8 +70,10 @@ impl<'a> FieldAttribute<'a> {
     }
 }
 
-impl<'a> From<&'a Field> for FieldAttribute<'a> {
-    fn from(field: &'a Field) -> Self {
+impl<'a> TryFrom<&'a Field> for FieldAttribute<'a> {
+    type Error = syn::Error;
+
+    fn try_from(field: &'a Field) -> SynResult<Self> {
         // Default value for keys is just the name of the field
         let name_ident = field.ident.clone().unwrap();
 
@@ -78,31 +82,23 @@ impl<'a> From<&'a Field> for FieldAttribute<'a> {
         let mut attribute = GuzzleAttribute::from_ident(&name_ident);
 
         for attr in &field.attrs {
-            if let Some(new_attribute) = raw_attr_to_guzzle_attr(&name_ident, &attr) {
+            if let Some(new_attribute) = raw_attr_to_guzzle_attr(&name_ident, &attr)? {
                 attribute = new_attribute;
                 break;
             }
         }
 
         let field = field.ident.as_ref().unwrap();
-        FieldAttribute { field, attribute }
+        Ok(FieldAttribute { field, attribute })
     }
 }
 
-fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> Option<GuzzleAttribute> {
+fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> SynResult<Option<GuzzleAttribute>> {
     let path = &attribute.path;
-    match quote!(#path).to_string().as_ref() {
+    let attr = match quote!(#path).to_string().as_ref() {
         "guzzle" => {
             let tokens = attribute.tts.clone();
-            let is_empty = tokens.is_empty();
-            let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens).unwrap_or_else(|err| {
-                let tokens_str = if is_empty {
-                    String::new()
-                } else {
-                    format!("problematic tokens: {}", &attribute.tts)
-                };
-                panic!("{}, {}", err.to_string(), tokens_str)
-            });
+            let mut keyed_attr: GuzzleKeyedAttribute = syn::parse2(tokens)?;
 
             // If we have a keyed attribute with no keys, we will use the ident
             if keyed_attr.keys.is_empty() {
@@ -114,7 +110,8 @@ fn raw_attr_to_guzzle_attr(ident: &Ident, attribute: &Attribute) -> Option<Guzzl
         "deep_guzzle" => Some(GuzzleAttribute::RecurseAttribute(ident.clone())),
         "no_guzzle" => Some(GuzzleAttribute::NoGuzzle),
         _ => None,
-    }
+    };
+    Ok(attr)
 }
 
 /// If a field has a `guzzle` attribute it must be either a keyed attribute, or a recursive
@@ -203,7 +200,7 @@ pub enum RawGuzzleKeyedAttribute {
 }
 
 impl Parse for RawGuzzleKeyedAttribute {
-    fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
+    fn parse(input: &ParseBuffer) -> SynResult<Self> {
         let name: Ident = input.parse()?;
         let name_str = name.to_string();
 
@@ -244,19 +241,8 @@ impl Parse for Keys {
         let content;
         bracketed!(content in input);
         let parser = Punctuated::<LitStr, Token![,]>::parse_separated_nonempty;
-        let parsed_keys = parser(&content).unwrap();
+        let parsed_keys = parser(&content)?;
         Ok(Keys(parsed_keys.into_iter().collect()))
-    }
-}
-
-impl Debug for Keys {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-        // We can infer the span type.
-        let strings: Vec<(String, _)> = self.iter().map(|s| (s.value(), s.span())).collect();
-        for (string, span) in strings {
-            writeln!(f, "{} - {:?}", string, span)?;
-        }
-        Ok(())
     }
 }
 
